@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'crop_overlay_painter.dart';
 import 'cropper_ratio.dart';
@@ -29,22 +29,35 @@ class ImageCropperView extends StatefulWidget {
   State<ImageCropperView> createState() => ImageCropperViewState();
 }
 
-class ImageCropperViewState extends State<ImageCropperView> {
+class ImageCropperViewState extends State<ImageCropperView>
+    with SingleTickerProviderStateMixin {
   ui.Image? _image;
   Size? _imageSize;
   Rect? _imageRect; // The rect where the image is actually displayed on screen
   Rect? _cropRect; // The crop rect in VIEWPORT coordinates
   bool _isLoading = true;
+  late AnimationController _scaleController;
 
   @override
   void initState() {
     super.initState();
+    _scaleController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 200),
+          lowerBound: 1.0,
+          upperBound: widget.style.activeHandlerScale,
+        )..addListener(() {
+          setState(() {});
+        });
+
     widget.controller?.attach(this);
     _loadImage();
   }
 
   @override
   void dispose() {
+    _scaleController.dispose();
     widget.controller?.detach();
     super.dispose();
   }
@@ -59,6 +72,7 @@ class ImageCropperViewState extends State<ImageCropperView> {
     if (oldWidget.image != widget.image) {
       _loadImage();
     }
+
     // If aspect ratio changes, we might need to reset or adjust the crop rect
     if (oldWidget.aspectRatio != widget.aspectRatio) {
       if (_imageRect != null) {
@@ -198,6 +212,8 @@ class ImageCropperViewState extends State<ImageCropperView> {
                           imageRect: _imageRect!,
                           cropRect: _cropRect!,
                           style: widget.style,
+                          activeHandle: activeHandle,
+                          scale: _scaleController.value,
                         ),
                       ),
                     // Interaction Layer
@@ -217,7 +233,7 @@ class ImageCropperViewState extends State<ImageCropperView> {
   }
   // --- Interaction Logic ---
 
-  _HandleType? activeHandle;
+  CropHandleSide? activeHandle;
   Offset? startTouchPoint;
   Rect? startCropRect;
 
@@ -228,6 +244,15 @@ class ImageCropperViewState extends State<ImageCropperView> {
     activeHandle = hitTest(pos);
     startTouchPoint = pos;
     startCropRect = _cropRect;
+
+    if (activeHandle != null) {
+      if (widget.style.enableFeedback) {
+        HapticFeedback.lightImpact();
+      }
+      if (widget.style.enableScaleAnimation) {
+        _scaleController.forward();
+      }
+    }
 
     setState(() {});
   }
@@ -242,13 +267,13 @@ class ImageCropperViewState extends State<ImageCropperView> {
     final Offset delta = details.localPosition - startTouchPoint!;
     Rect newRect = startCropRect!;
 
-    if (activeHandle == _HandleType.move) {
+    if (activeHandle == CropHandleSide.move) {
       newRect = newRect.shift(delta);
     } else {
       newRect = resizeRect(newRect, activeHandle!, delta, _imageRect!);
     }
 
-    if (activeHandle == _HandleType.move) {
+    if (activeHandle == CropHandleSide.move) {
       if (newRect.left < _imageRect!.left) {
         newRect = newRect.shift(Offset(_imageRect!.left - newRect.left, 0));
       }
@@ -271,6 +296,9 @@ class ImageCropperViewState extends State<ImageCropperView> {
   }
 
   void onPanEnd(DragEndDetails details) {
+    if (widget.style.enableScaleAnimation) {
+      _scaleController.reverse();
+    }
     setState(() {
       activeHandle = null;
       startTouchPoint = null;
@@ -278,28 +306,28 @@ class ImageCropperViewState extends State<ImageCropperView> {
     });
   }
 
-  _HandleType? hitTest(Offset point) {
+  CropHandleSide? hitTest(Offset point) {
     if (_cropRect == null) return null;
 
     final double hitSize = widget.style.handlerSize * 1.5;
 
     if ((point - _cropRect!.topLeft).distance <= hitSize)
-      return _HandleType.topLeft;
+      return CropHandleSide.topLeft;
     if ((point - _cropRect!.topRight).distance <= hitSize)
-      return _HandleType.topRight;
+      return CropHandleSide.topRight;
     if ((point - _cropRect!.bottomLeft).distance <= hitSize)
-      return _HandleType.bottomLeft;
+      return CropHandleSide.bottomLeft;
     if ((point - _cropRect!.bottomRight).distance <= hitSize)
-      return _HandleType.bottomRight;
+      return CropHandleSide.bottomRight;
 
-    if (_cropRect!.contains(point)) return _HandleType.move;
+    if (_cropRect!.contains(point)) return CropHandleSide.move;
 
     return null;
   }
 
   Rect resizeRect(
     Rect original,
-    _HandleType handle,
+    CropHandleSide handle,
     Offset delta,
     Rect bounds,
   ) {
@@ -309,30 +337,32 @@ class ImageCropperViewState extends State<ImageCropperView> {
     double bottom = original.bottom;
 
     // Apply delta based on handle
-    if (handle == _HandleType.topLeft) {
+    if (handle == CropHandleSide.topLeft) {
       left += delta.dx;
       top += delta.dy;
-    } else if (handle == _HandleType.topRight) {
+    } else if (handle == CropHandleSide.topRight) {
       right += delta.dx;
       top += delta.dy;
-    } else if (handle == _HandleType.bottomLeft) {
+    } else if (handle == CropHandleSide.bottomLeft) {
       left += delta.dx;
       bottom += delta.dy;
-    } else if (handle == _HandleType.bottomRight) {
+    } else if (handle == CropHandleSide.bottomRight) {
       right += delta.dx;
       bottom += delta.dy;
     }
 
     // Min size check (pre-aspect ratio to avoid collapse)
     if (right < left + 20) {
-      if (handle == _HandleType.topLeft || handle == _HandleType.bottomLeft) {
+      if (handle == CropHandleSide.topLeft ||
+          handle == CropHandleSide.bottomLeft) {
         left = right - 20;
       } else {
         right = left + 20;
       }
     }
     if (bottom < top + 20) {
-      if (handle == _HandleType.topLeft || handle == _HandleType.topRight) {
+      if (handle == CropHandleSide.topLeft ||
+          handle == CropHandleSide.topRight) {
         top = bottom - 20;
       } else {
         bottom = top + 20;
@@ -349,13 +379,13 @@ class ImageCropperViewState extends State<ImageCropperView> {
       // But we must respect which handle is driving which dimension.
       // Simplified: Calculate height from width.
 
-      if (handle == _HandleType.bottomRight) {
+      if (handle == CropHandleSide.bottomRight) {
         bottom = top + (currentWidth / targetRatio);
-      } else if (handle == _HandleType.bottomLeft) {
+      } else if (handle == CropHandleSide.bottomLeft) {
         bottom = top + (currentWidth / targetRatio);
-      } else if (handle == _HandleType.topRight) {
+      } else if (handle == CropHandleSide.topRight) {
         top = bottom - (currentWidth / targetRatio);
-      } else if (handle == _HandleType.topLeft) {
+      } else if (handle == CropHandleSide.topLeft) {
         top = bottom - (currentWidth / targetRatio);
       }
 
@@ -366,44 +396,48 @@ class ImageCropperViewState extends State<ImageCropperView> {
         left = bounds.left;
         // Re-calculate dependent dimension
         double w = right - left;
-        if (handle == _HandleType.topLeft || handle == _HandleType.bottomLeft) {
+        if (handle == CropHandleSide.topLeft ||
+            handle == CropHandleSide.bottomLeft) {
           // We moved left, so we change width.
           // If we are TopLeft, Top depends on Width.
-          if (handle == _HandleType.topLeft) top = bottom - (w / targetRatio);
-          if (handle == _HandleType.bottomLeft)
+          if (handle == CropHandleSide.topLeft)
+            top = bottom - (w / targetRatio);
+          if (handle == CropHandleSide.bottomLeft)
             bottom = top + (w / targetRatio);
         }
       }
       if (top < bounds.top) {
         top = bounds.top;
         double h = bottom - top;
-        if (handle == _HandleType.topLeft || handle == _HandleType.topRight) {
+        if (handle == CropHandleSide.topLeft ||
+            handle == CropHandleSide.topRight) {
           // We moved top. Width depends on Height?
           // Current logic drove Height from Width. Now Height determines Width.
           // w = h * ratio
           double w = h * targetRatio;
-          if (handle == _HandleType.topLeft) left = right - w;
-          if (handle == _HandleType.topRight) right = left + w;
+          if (handle == CropHandleSide.topLeft) left = right - w;
+          if (handle == CropHandleSide.topRight) right = left + w;
         }
       }
       if (right > bounds.right) {
         right = bounds.right;
         double w = right - left;
-        if (handle == _HandleType.topRight ||
-            handle == _HandleType.bottomRight) {
-          if (handle == _HandleType.topRight) top = bottom - (w / targetRatio);
-          if (handle == _HandleType.bottomRight)
+        if (handle == CropHandleSide.topRight ||
+            handle == CropHandleSide.bottomRight) {
+          if (handle == CropHandleSide.topRight)
+            top = bottom - (w / targetRatio);
+          if (handle == CropHandleSide.bottomRight)
             bottom = top + (w / targetRatio);
         }
       }
       if (bottom > bounds.bottom) {
         bottom = bounds.bottom;
         double h = bottom - top;
-        if (handle == _HandleType.bottomLeft ||
-            handle == _HandleType.bottomRight) {
+        if (handle == CropHandleSide.bottomLeft ||
+            handle == CropHandleSide.bottomRight) {
           double w = h * targetRatio;
-          if (handle == _HandleType.bottomLeft) left = right - w;
-          if (handle == _HandleType.bottomRight) right = left + w;
+          if (handle == CropHandleSide.bottomLeft) left = right - w;
+          if (handle == CropHandleSide.bottomRight) right = left + w;
         }
       }
 
@@ -475,5 +509,3 @@ class ImageCropperViewState extends State<ImageCropperView> {
     return byteData?.buffer.asUint8List();
   }
 }
-
-enum _HandleType { topLeft, topRight, bottomLeft, bottomRight, move }

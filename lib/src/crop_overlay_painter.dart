@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'cropper_style.dart';
 
+enum CropHandleSide { topLeft, topRight, bottomLeft, bottomRight, move }
+
 class CropOverlayPainter extends CustomPainter {
   final Rect imageRect;
   final Rect cropRect;
   final CropperStyle style;
+  final CropHandleSide? activeHandle;
+  final double scale;
 
   CropOverlayPainter({
     required this.imageRect,
     required this.cropRect,
     required this.style,
+    this.activeHandle,
+    this.scale = 1.0,
   });
 
   @override
@@ -58,67 +64,143 @@ class CropOverlayPainter extends CustomPainter {
       final double radius = style.cropBorderRadius;
 
       // Top Left
-      final Path topLeft = Path()
-        ..moveTo(cropRect.left, cropRect.top + handleLen)
-        ..lineTo(cropRect.left, cropRect.top + radius)
-        ..arcToPoint(
-          Offset(cropRect.left + radius, cropRect.top),
-          radius: Radius.circular(radius),
-        )
-        ..lineTo(cropRect.left + handleLen, cropRect.top);
-      canvas.drawPath(topLeft, handlePaint);
+      _drawHandle(
+        canvas,
+        cropRect.topLeft,
+        handlePaint,
+        CropHandleSide.topLeft,
+        (p) => Path()
+          ..moveTo(p.dx, p.dy + handleLen)
+          ..lineTo(p.dx, p.dy + radius)
+          ..arcToPoint(
+            Offset(p.dx + radius, p.dy),
+            radius: Radius.circular(radius),
+          )
+          ..lineTo(p.dx + handleLen, p.dy),
+      );
 
       // Top Right
-      final Path topRight = Path()
-        ..moveTo(cropRect.right - handleLen, cropRect.top)
-        ..lineTo(cropRect.right - radius, cropRect.top)
-        ..arcToPoint(
-          Offset(cropRect.right, cropRect.top + radius),
-          radius: Radius.circular(radius),
-        )
-        ..lineTo(cropRect.right, cropRect.top + handleLen);
-      canvas.drawPath(topRight, handlePaint);
+      _drawHandle(
+        canvas,
+        cropRect.topRight,
+        handlePaint,
+        CropHandleSide.topRight,
+        (p) => Path()
+          ..moveTo(p.dx - handleLen, p.dy)
+          ..lineTo(p.dx - radius, p.dy)
+          ..arcToPoint(
+            Offset(p.dx, p.dy + radius),
+            radius: Radius.circular(radius),
+          )
+          ..lineTo(p.dx, p.dy + handleLen),
+      );
 
       // Bottom Right
-      final Path bottomRight = Path()
-        ..moveTo(cropRect.right, cropRect.bottom - handleLen)
-        ..lineTo(cropRect.right, cropRect.bottom - radius)
-        ..arcToPoint(
-          Offset(cropRect.right - radius, cropRect.bottom),
-          radius: Radius.circular(radius),
-        )
-        ..lineTo(cropRect.right - handleLen, cropRect.bottom);
-      canvas.drawPath(bottomRight, handlePaint);
+      _drawHandle(
+        canvas,
+        cropRect.bottomRight,
+        handlePaint,
+        CropHandleSide.bottomRight,
+        (p) => Path()
+          ..moveTo(p.dx, p.dy - handleLen)
+          ..lineTo(p.dx, p.dy - radius)
+          ..arcToPoint(
+            Offset(p.dx - radius, p.dy),
+            radius: Radius.circular(radius),
+          )
+          ..lineTo(p.dx - handleLen, p.dy),
+      );
 
       // Bottom Left
-      final Path bottomLeft = Path()
-        ..moveTo(cropRect.left + handleLen, cropRect.bottom)
-        ..lineTo(cropRect.left + radius, cropRect.bottom)
-        ..arcToPoint(
-          Offset(cropRect.left, cropRect.bottom - radius),
-          radius: Radius.circular(radius),
-        )
-        ..lineTo(cropRect.left, cropRect.bottom - handleLen);
-      canvas.drawPath(bottomLeft, handlePaint);
+      _drawHandle(
+        canvas,
+        cropRect.bottomLeft,
+        handlePaint,
+        CropHandleSide.bottomLeft,
+        (p) => Path()
+          ..moveTo(p.dx + handleLen, p.dy)
+          ..lineTo(p.dx + radius, p.dy)
+          ..arcToPoint(
+            Offset(p.dx, p.dy - radius),
+            radius: Radius.circular(radius),
+          )
+          ..lineTo(p.dx, p.dy - handleLen),
+      );
     } else {
       // Circle handles
       handlePaint.style = PaintingStyle.fill;
       final double handleSize = style.handlerSize / 2;
 
-      // Top Left
-      canvas.drawCircle(cropRect.topLeft, handleSize, handlePaint);
-      // Top Right
-      canvas.drawCircle(cropRect.topRight, handleSize, handlePaint);
-      // Bottom Left
-      canvas.drawCircle(cropRect.bottomLeft, handleSize, handlePaint);
-      // Bottom Right
-      canvas.drawCircle(cropRect.bottomRight, handleSize, handlePaint);
+      _drawCircleHandle(
+        canvas,
+        cropRect.topLeft,
+        handleSize,
+        handlePaint,
+        CropHandleSide.topLeft,
+      );
+      _drawCircleHandle(
+        canvas,
+        cropRect.topRight,
+        handleSize,
+        handlePaint,
+        CropHandleSide.topRight,
+      );
+      _drawCircleHandle(
+        canvas,
+        cropRect.bottomLeft,
+        handleSize,
+        handlePaint,
+        CropHandleSide.bottomLeft,
+      );
+      _drawCircleHandle(
+        canvas,
+        cropRect.bottomRight,
+        handleSize,
+        handlePaint,
+        CropHandleSide.bottomRight,
+      );
     }
+  }
+
+  void _drawHandle(
+    Canvas canvas,
+    Offset center,
+    Paint paint,
+    CropHandleSide side,
+    Path Function(Offset) pathBuilder,
+  ) {
+    canvas.save();
+    if (activeHandle == side && scale > 1.0) {
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(scale);
+      canvas.translate(-center.dx, -center.dy);
+    }
+    canvas.drawPath(pathBuilder(center), paint);
+    canvas.restore();
+  }
+
+  void _drawCircleHandle(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint paint,
+    CropHandleSide side,
+  ) {
+    canvas.save();
+    if (activeHandle == side && scale > 1.0) {
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(scale);
+      canvas.translate(-center.dx, -center.dy);
+    }
+    canvas.drawCircle(center, radius, paint);
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(CropOverlayPainter oldDelegate) {
     return oldDelegate.cropRect != cropRect ||
-        oldDelegate.imageRect != imageRect;
+        oldDelegate.imageRect != imageRect ||
+        oldDelegate.activeHandle != activeHandle ||
+        oldDelegate.scale != scale;
   }
 }

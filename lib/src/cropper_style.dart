@@ -11,6 +11,9 @@ class CropperStyle {
   final HandleType handleType;
   final double handlerThickness;
   final double cropBorderRadius;
+  final bool enableFeedback;
+  final bool enableScaleAnimation;
+  final double activeHandlerScale;
 
   const CropperStyle({
     this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
@@ -21,5 +24,8 @@ class CropperStyle {
     this.handleType = HandleType.circle,
     this.handlerThickness = 4.0,
     this.cropBorderRadius = 12.0,
+    this.enableFeedback = true,
+    this.enableScaleAnimation = true,
+    this.activeHandlerScale = 1.3,
   });
 }
