@@ -18,7 +18,14 @@ class CropOverlayPainter extends CustomPainter {
     // 1. Draw Update (Semi-transparent background everywhere EXCEPT the crop rect)
     final Path backgroundPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cropPath = Path()..addRect(cropRect);
+
+    // Create RRect from cropRect using style.cropBorderRadius
+    final RRect cropRRect = RRect.fromRectAndRadius(
+      cropRect,
+      Radius.circular(style.cropBorderRadius),
+    );
+
+    final Path cropPath = Path()..addRRect(cropRRect);
 
     // Reverse difference to cut out the hole
     final Path overlayPath = Path.combine(
@@ -35,20 +42,78 @@ class CropOverlayPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = style.borderWidth;
 
-    canvas.drawRect(cropRect, borderPaint);
+    canvas.drawRRect(cropRRect, borderPaint);
 
     // 3. Draw Handles (Corners)
-    final Paint handlePaint = Paint()..color = style.handlerColor;
-    final double handleSize = style.handlerSize / 2;
+    final Paint handlePaint = Paint()
+      ..color = style.handlerColor
+      ..strokeCap = StrokeCap.round; // Round caps for corner lines
 
-    // Top Left
-    canvas.drawCircle(cropRect.topLeft, handleSize, handlePaint);
-    // Top Right
-    canvas.drawCircle(cropRect.topRight, handleSize, handlePaint);
-    // Bottom Left
-    canvas.drawCircle(cropRect.bottomLeft, handleSize, handlePaint);
-    // Bottom Right
-    canvas.drawCircle(cropRect.bottomRight, handleSize, handlePaint);
+    if (style.handleType == HandleType.corner) {
+      handlePaint
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = style.handlerThickness;
+
+      final double handleLen = style.handlerSize;
+      final double radius = style.cropBorderRadius;
+
+      // Top Left
+      final Path topLeft = Path()
+        ..moveTo(cropRect.left, cropRect.top + handleLen)
+        ..lineTo(cropRect.left, cropRect.top + radius)
+        ..arcToPoint(
+          Offset(cropRect.left + radius, cropRect.top),
+          radius: Radius.circular(radius),
+        )
+        ..lineTo(cropRect.left + handleLen, cropRect.top);
+      canvas.drawPath(topLeft, handlePaint);
+
+      // Top Right
+      final Path topRight = Path()
+        ..moveTo(cropRect.right - handleLen, cropRect.top)
+        ..lineTo(cropRect.right - radius, cropRect.top)
+        ..arcToPoint(
+          Offset(cropRect.right, cropRect.top + radius),
+          radius: Radius.circular(radius),
+        )
+        ..lineTo(cropRect.right, cropRect.top + handleLen);
+      canvas.drawPath(topRight, handlePaint);
+
+      // Bottom Right
+      final Path bottomRight = Path()
+        ..moveTo(cropRect.right, cropRect.bottom - handleLen)
+        ..lineTo(cropRect.right, cropRect.bottom - radius)
+        ..arcToPoint(
+          Offset(cropRect.right - radius, cropRect.bottom),
+          radius: Radius.circular(radius),
+        )
+        ..lineTo(cropRect.right - handleLen, cropRect.bottom);
+      canvas.drawPath(bottomRight, handlePaint);
+
+      // Bottom Left
+      final Path bottomLeft = Path()
+        ..moveTo(cropRect.left + handleLen, cropRect.bottom)
+        ..lineTo(cropRect.left + radius, cropRect.bottom)
+        ..arcToPoint(
+          Offset(cropRect.left, cropRect.bottom - radius),
+          radius: Radius.circular(radius),
+        )
+        ..lineTo(cropRect.left, cropRect.bottom - handleLen);
+      canvas.drawPath(bottomLeft, handlePaint);
+    } else {
+      // Circle handles
+      handlePaint.style = PaintingStyle.fill;
+      final double handleSize = style.handlerSize / 2;
+
+      // Top Left
+      canvas.drawCircle(cropRect.topLeft, handleSize, handlePaint);
+      // Top Right
+      canvas.drawCircle(cropRect.topRight, handleSize, handlePaint);
+      // Bottom Left
+      canvas.drawCircle(cropRect.bottomLeft, handleSize, handlePaint);
+      // Bottom Right
+      canvas.drawCircle(cropRect.bottomRight, handleSize, handlePaint);
+    }
   }
 
   @override
