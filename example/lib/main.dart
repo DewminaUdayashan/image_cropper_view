@@ -111,7 +111,10 @@ class _MyHomePageState extends State<MyHomePage> {
               children: CropperRatio.values.map((ratio) {
                 return _AspectRatioButton(
                   label: ratio.label,
-                  onPressed: () => setState(() => _aspectRatio = ratio),
+                  onPressed: () {
+                    _controller.setAspectRatio(ratio);
+                    setState(() => _aspectRatio = ratio);
+                  },
                   isSelected: _aspectRatio == ratio,
                 );
               }).toList(),

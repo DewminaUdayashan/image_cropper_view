@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'cropper_ratio.dart';
 import 'image_cropper_view.dart';
 
 class ImageCropperController {
@@ -15,5 +16,9 @@ class ImageCropperController {
 
   Future<Uint8List?> crop() {
     return _state?.getCroppedImage() ?? Future.value(null);
+  }
+
+  void setAspectRatio(CropperRatio ratio) {
+    _state?.setAspectRatio(ratio);
   }
 }

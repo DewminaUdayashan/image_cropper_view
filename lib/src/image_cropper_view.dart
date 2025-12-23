@@ -37,10 +37,12 @@ class ImageCropperViewState extends State<ImageCropperView>
   Rect? _cropRect; // The crop rect in VIEWPORT coordinates
   bool _isLoading = true;
   late AnimationController _scaleController;
+  CropperRatio? _currentAspectRatio;
 
   @override
   void initState() {
     super.initState();
+    _currentAspectRatio = widget.aspectRatio;
     _scaleController =
         AnimationController(
           vsync: this,
@@ -73,8 +75,9 @@ class ImageCropperViewState extends State<ImageCropperView>
       _loadImage();
     }
 
-    // If aspect ratio changes, we might need to reset or adjust the crop rect
+    // If aspect ratio changes via WIDGET param, update internal state
     if (oldWidget.aspectRatio != widget.aspectRatio) {
+      _currentAspectRatio = widget.aspectRatio;
       if (_imageRect != null) {
         // Resetting to center is the safest behavior when ratio changes abruptly
         _cropRect = null;
@@ -154,7 +157,7 @@ class ImageCropperViewState extends State<ImageCropperView>
     double width = imageRect.width;
     double height = imageRect.height;
 
-    final double? targetRatio = widget.aspectRatio?.ratio;
+    final double? targetRatio = _currentAspectRatio?.ratio;
 
     if (targetRatio != null) {
       if (width / height > targetRatio) {
@@ -369,7 +372,7 @@ class ImageCropperViewState extends State<ImageCropperView>
       }
     }
 
-    final double? targetRatio = widget.aspectRatio?.ratio;
+    final double? targetRatio = _currentAspectRatio?.ratio;
 
     if (targetRatio != null) {
       // 1. Enforce Aspect Ratio
@@ -481,6 +484,18 @@ class ImageCropperViewState extends State<ImageCropperView>
     final double h = _cropRect!.height * scaleY;
 
     return Rect.fromLTWH(x, y, w, h);
+  }
+
+  void setAspectRatio(CropperRatio ratio) {
+    if (_currentAspectRatio != ratio) {
+      setState(() {
+        _currentAspectRatio = ratio;
+        if (_imageRect != null) {
+          _cropRect = null;
+          _initializeCropRect(_imageRect!);
+        }
+      });
+    }
   }
 
   Future<Uint8List?> getCroppedImage() async {
