@@ -32,13 +32,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final GlobalKey<ImageCropperViewState> _cropperKey =
-      GlobalKey<ImageCropperViewState>();
-  double? _aspectRatio;
+  final ImageCropperController _controller = ImageCropperController();
+  CropperRatio? _aspectRatio;
   Uint8List? _croppedImage;
 
   void _cropImage() async {
-    final Uint8List? bytes = await _cropperKey.currentState?.getCroppedImage();
+    final Uint8List? bytes = await _controller.crop();
     if (bytes != null) {
       setState(() {
         _croppedImage = bytes;
@@ -84,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16.0),
                       ),
-                      key: _cropperKey,
+                      controller: _controller,
                       image: const NetworkImage(
                         'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=80',
                       ),
@@ -102,40 +101,16 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _AspectRatioButton(
-                  label: 'Free',
-                  onPressed: () => setState(() => _aspectRatio = null),
-                  isSelected: _aspectRatio == null,
-                ),
-                _AspectRatioButton(
-                  label: '1:1',
-                  onPressed: () => setState(() => _aspectRatio = 1.0),
-                  isSelected: _aspectRatio == 1.0,
-                ),
-                _AspectRatioButton(
-                  label: '4:3',
-                  onPressed: () => setState(() => _aspectRatio = 4 / 3),
-                  isSelected: _aspectRatio == 4 / 3,
-                ),
-                _AspectRatioButton(
-                  label: '16:9',
-                  onPressed: () => setState(() => _aspectRatio = 16 / 9),
-                  isSelected: _aspectRatio == 16 / 9,
-                ),
-                _AspectRatioButton(
-                  label: '9:16',
-                  onPressed: () => setState(() => _aspectRatio = 9 / 16),
-                  isSelected: _aspectRatio == 9 / 16,
-                ),
-                _AspectRatioButton(
-                  label: '3:4',
-                  onPressed: () => setState(() => _aspectRatio = 3 / 4),
-                  isSelected: _aspectRatio == 3 / 4,
-                ),
-              ],
+            child: Wrap(
+              runSpacing: 6,
+              spacing: 6,
+              children: CropperRatio.values.map((ratio) {
+                return _AspectRatioButton(
+                  label: ratio.label,
+                  onPressed: () => setState(() => _aspectRatio = ratio),
+                  isSelected: _aspectRatio == ratio,
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 20),

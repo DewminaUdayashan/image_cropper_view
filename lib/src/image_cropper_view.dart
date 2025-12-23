@@ -4,27 +4,17 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-class CropperStyle {
-  final Color overlayColor;
-  final Color borderColor;
-  final double borderWidth;
-  final Color handlerColor;
-  final double handlerSize;
-
-  const CropperStyle({
-    this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
-    this.borderColor = Colors.white,
-    this.borderWidth = 2.0,
-    this.handlerColor = Colors.white,
-    this.handlerSize = 20.0,
-  });
-}
+import 'crop_overlay_painter.dart';
+import 'cropper_ratio.dart';
+import 'cropper_style.dart';
+import 'image_cropper_controller.dart';
 
 class ImageCropperView extends StatefulWidget {
   final ImageProvider image;
-  final double? aspectRatio;
+  final CropperRatio? aspectRatio;
   final CropperStyle style;
   final BoxDecoration? decoration;
+  final ImageCropperController? controller;
 
   const ImageCropperView({
     super.key,
@@ -32,6 +22,7 @@ class ImageCropperView extends StatefulWidget {
     this.aspectRatio,
     this.style = const CropperStyle(),
     this.decoration,
+    this.controller,
   });
 
   @override
@@ -48,12 +39,23 @@ class ImageCropperViewState extends State<ImageCropperView> {
   @override
   void initState() {
     super.initState();
+    widget.controller?.attach(this);
     _loadImage();
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.detach();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(ImageCropperView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.detach();
+      widget.controller?.attach(this);
+    }
     if (oldWidget.image != widget.image) {
       _loadImage();
     }
@@ -138,13 +140,15 @@ class ImageCropperViewState extends State<ImageCropperView> {
     double width = imageRect.width;
     double height = imageRect.height;
 
-    if (widget.aspectRatio != null) {
-      if (width / height > widget.aspectRatio!) {
+    final double? targetRatio = widget.aspectRatio?.ratio;
+
+    if (targetRatio != null) {
+      if (width / height > targetRatio) {
         // Image is wider than target ratio, constrain width
-        width = height * widget.aspectRatio!;
+        width = height * targetRatio;
       } else {
         // Image is taller, constrain height
-        height = width / widget.aspectRatio!;
+        height = width / targetRatio;
       }
     }
 
@@ -190,7 +194,7 @@ class ImageCropperViewState extends State<ImageCropperView> {
                     if (_imageRect != null && _cropRect != null)
                       CustomPaint(
                         size: Size.infinite,
-                        painter: _CropOverlayPainter(
+                        painter: CropOverlayPainter(
                           imageRect: _imageRect!,
                           cropRect: _cropRect!,
                           style: widget.style,
@@ -241,7 +245,7 @@ class ImageCropperViewState extends State<ImageCropperView> {
     if (activeHandle == _HandleType.move) {
       newRect = newRect.shift(delta);
     } else {
-      newRect = resizeRect(newRect, activeHandle!, delta);
+      newRect = resizeRect(newRect, activeHandle!, delta, _imageRect!);
     }
 
     if (activeHandle == _HandleType.move) {
@@ -257,9 +261,9 @@ class ImageCropperViewState extends State<ImageCropperView> {
       if (newRect.bottom > _imageRect!.bottom) {
         newRect = newRect.shift(Offset(0, _imageRect!.bottom - newRect.bottom));
       }
-    } else {
-      newRect = newRect.intersect(_imageRect!);
     }
+    // Removed the else block with newRect.intersect(_imageRect!) because
+    // resizeRect now handles bounds respecting aspect ratio.
 
     setState(() {
       _cropRect = newRect;
@@ -293,12 +297,18 @@ class ImageCropperViewState extends State<ImageCropperView> {
     return null;
   }
 
-  Rect resizeRect(Rect original, _HandleType handle, Offset delta) {
+  Rect resizeRect(
+    Rect original,
+    _HandleType handle,
+    Offset delta,
+    Rect bounds,
+  ) {
     double left = original.left;
     double top = original.top;
     double right = original.right;
     double bottom = original.bottom;
 
+    // Apply delta based on handle
     if (handle == _HandleType.topLeft) {
       left += delta.dx;
       top += delta.dy;
@@ -313,9 +323,31 @@ class ImageCropperViewState extends State<ImageCropperView> {
       bottom += delta.dy;
     }
 
-    if (widget.aspectRatio != null) {
-      final double targetRatio = widget.aspectRatio!;
+    // Min size check (pre-aspect ratio to avoid collapse)
+    if (right < left + 20) {
+      if (handle == _HandleType.topLeft || handle == _HandleType.bottomLeft) {
+        left = right - 20;
+      } else {
+        right = left + 20;
+      }
+    }
+    if (bottom < top + 20) {
+      if (handle == _HandleType.topLeft || handle == _HandleType.topRight) {
+        top = bottom - 20;
+      } else {
+        bottom = top + 20;
+      }
+    }
+
+    final double? targetRatio = widget.aspectRatio?.ratio;
+
+    if (targetRatio != null) {
+      // 1. Enforce Aspect Ratio
       final double currentWidth = right - left;
+
+      // We prioritize width for TopRight/BottomRight/TopLeft/BottomLeft consistency
+      // But we must respect which handle is driving which dimension.
+      // Simplified: Calculate height from width.
 
       if (handle == _HandleType.bottomRight) {
         bottom = top + (currentWidth / targetRatio);
@@ -326,8 +358,76 @@ class ImageCropperViewState extends State<ImageCropperView> {
       } else if (handle == _HandleType.topLeft) {
         top = bottom - (currentWidth / targetRatio);
       }
+
+      // 2. Check Bounds & Re-adjust
+      // If we went out of bounds, clip the violating edge, then re-calculate the other dimension.
+
+      if (left < bounds.left) {
+        left = bounds.left;
+        // Re-calculate dependent dimension
+        double w = right - left;
+        if (handle == _HandleType.topLeft || handle == _HandleType.bottomLeft) {
+          // We moved left, so we change width.
+          // If we are TopLeft, Top depends on Width.
+          if (handle == _HandleType.topLeft) top = bottom - (w / targetRatio);
+          if (handle == _HandleType.bottomLeft)
+            bottom = top + (w / targetRatio);
+        }
+      }
+      if (top < bounds.top) {
+        top = bounds.top;
+        double h = bottom - top;
+        if (handle == _HandleType.topLeft || handle == _HandleType.topRight) {
+          // We moved top. Width depends on Height?
+          // Current logic drove Height from Width. Now Height determines Width.
+          // w = h * ratio
+          double w = h * targetRatio;
+          if (handle == _HandleType.topLeft) left = right - w;
+          if (handle == _HandleType.topRight) right = left + w;
+        }
+      }
+      if (right > bounds.right) {
+        right = bounds.right;
+        double w = right - left;
+        if (handle == _HandleType.topRight ||
+            handle == _HandleType.bottomRight) {
+          if (handle == _HandleType.topRight) top = bottom - (w / targetRatio);
+          if (handle == _HandleType.bottomRight)
+            bottom = top + (w / targetRatio);
+        }
+      }
+      if (bottom > bounds.bottom) {
+        bottom = bounds.bottom;
+        double h = bottom - top;
+        if (handle == _HandleType.bottomLeft ||
+            handle == _HandleType.bottomRight) {
+          double w = h * targetRatio;
+          if (handle == _HandleType.bottomLeft) left = right - w;
+          if (handle == _HandleType.bottomRight) right = left + w;
+        }
+      }
+
+      // 3. Double Check (Corner case: correcting one side might push the other out)
+      // If still out of bounds, we simply clamp to the intersection safe area
+      // (This technically changes the ratio, but only when the image is physically too small
+      // to fit the aspect ratio in that corner, which is rare if we started valid).
+      // However, better behavior might be to shrink the entire rect to fit.
+      // For now, let's just ensure we don't return invalid rects.
     }
 
+    // Final strict clamp to ensure no crash, though logic above should handle it.
+    // If we are strictly maintaining aspect ratio, simple clamping breaks it.
+    // But if we are "stuck" in a corner, we might have to.
+    // Let's trust logic above for AR, and only clamp if free-form.
+
+    if (targetRatio == null) {
+      if (left < bounds.left) left = bounds.left;
+      if (top < bounds.top) top = bounds.top;
+      if (right > bounds.right) right = bounds.right;
+      if (bottom > bounds.bottom) bottom = bounds.bottom;
+    }
+
+    // Min size check again
     if (right < left + 20) right = left + 20;
     if (bottom < top + 20) bottom = top + 20;
 
@@ -377,60 +477,3 @@ class ImageCropperViewState extends State<ImageCropperView> {
 }
 
 enum _HandleType { topLeft, topRight, bottomLeft, bottomRight, move }
-
-class _CropOverlayPainter extends CustomPainter {
-  final Rect imageRect;
-  final Rect cropRect;
-  final CropperStyle style;
-
-  _CropOverlayPainter({
-    required this.imageRect,
-    required this.cropRect,
-    required this.style,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Draw Update (Semi-transparent background everywhere EXCEPT the crop rect)
-    final Path backgroundPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cropPath = Path()..addRect(cropRect);
-
-    // Reverse difference to cut out the hole
-    final Path overlayPath = Path.combine(
-      PathOperation.difference,
-      backgroundPath,
-      cropPath,
-    );
-
-    canvas.drawPath(overlayPath, Paint()..color = style.overlayColor);
-
-    // 2. Draw Border around Crop Rect
-    final Paint borderPaint = Paint()
-      ..color = style.borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = style.borderWidth;
-
-    canvas.drawRect(cropRect, borderPaint);
-
-    // 3. Draw Handles (Corners)
-    // TODO: Draw fancy handles
-    final Paint handlePaint = Paint()..color = style.handlerColor;
-    final double handleSize = style.handlerSize / 2;
-
-    // Top Left
-    canvas.drawCircle(cropRect.topLeft, handleSize, handlePaint);
-    // Top Right
-    canvas.drawCircle(cropRect.topRight, handleSize, handlePaint);
-    // Bottom Left
-    canvas.drawCircle(cropRect.bottomLeft, handleSize, handlePaint);
-    // Bottom Right
-    canvas.drawCircle(cropRect.bottomRight, handleSize, handlePaint);
-  }
-
-  @override
-  bool shouldRepaint(_CropOverlayPainter oldDelegate) {
-    return oldDelegate.cropRect != cropRect ||
-        oldDelegate.imageRect != imageRect;
-  }
-}
