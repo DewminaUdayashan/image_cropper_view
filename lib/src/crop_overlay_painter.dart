@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'cropper_style.dart';
@@ -6,28 +7,31 @@ enum CropHandleSide { topLeft, topRight, bottomLeft, bottomRight, move }
 
 class CropOverlayPainter extends CustomPainter {
   final Rect imageRect;
-  final Rect cropRect;
+  final ValueListenable<Rect?> cropRect;
   final CropperStyle style;
-  final CropHandleSide? activeHandle;
-  final double scale;
+  final ValueListenable<CropHandleSide?> activeHandle;
+  final ValueListenable<double> scale;
 
   CropOverlayPainter({
     required this.imageRect,
     required this.cropRect,
     required this.style,
-    this.activeHandle,
-    this.scale = 1.0,
-  });
+    required this.activeHandle,
+    required this.scale,
+  }) : super(repaint: Listenable.merge([cropRect, activeHandle, scale]));
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (cropRect.value == null) return;
+    final Rect rect = cropRect.value!;
+
     // 1. Draw Update (Semi-transparent background everywhere EXCEPT the crop rect)
     final Path backgroundPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
     // Create RRect from cropRect using style.cropBorderRadius
     final RRect cropRRect = RRect.fromRectAndRadius(
-      cropRect,
+      rect,
       Radius.circular(style.cropBorderRadius),
     );
 
@@ -66,7 +70,7 @@ class CropOverlayPainter extends CustomPainter {
       // Top Left
       _drawHandle(
         canvas,
-        cropRect.topLeft,
+        rect.topLeft,
         handlePaint,
         CropHandleSide.topLeft,
         (p) => Path()
@@ -82,7 +86,7 @@ class CropOverlayPainter extends CustomPainter {
       // Top Right
       _drawHandle(
         canvas,
-        cropRect.topRight,
+        rect.topRight,
         handlePaint,
         CropHandleSide.topRight,
         (p) => Path()
@@ -98,7 +102,7 @@ class CropOverlayPainter extends CustomPainter {
       // Bottom Right
       _drawHandle(
         canvas,
-        cropRect.bottomRight,
+        rect.bottomRight,
         handlePaint,
         CropHandleSide.bottomRight,
         (p) => Path()
@@ -114,7 +118,7 @@ class CropOverlayPainter extends CustomPainter {
       // Bottom Left
       _drawHandle(
         canvas,
-        cropRect.bottomLeft,
+        rect.bottomLeft,
         handlePaint,
         CropHandleSide.bottomLeft,
         (p) => Path()
@@ -133,28 +137,28 @@ class CropOverlayPainter extends CustomPainter {
 
       _drawCircleHandle(
         canvas,
-        cropRect.topLeft,
+        rect.topLeft,
         handleSize,
         handlePaint,
         CropHandleSide.topLeft,
       );
       _drawCircleHandle(
         canvas,
-        cropRect.topRight,
+        rect.topRight,
         handleSize,
         handlePaint,
         CropHandleSide.topRight,
       );
       _drawCircleHandle(
         canvas,
-        cropRect.bottomLeft,
+        rect.bottomLeft,
         handleSize,
         handlePaint,
         CropHandleSide.bottomLeft,
       );
       _drawCircleHandle(
         canvas,
-        cropRect.bottomRight,
+        rect.bottomRight,
         handleSize,
         handlePaint,
         CropHandleSide.bottomRight,
@@ -170,9 +174,9 @@ class CropOverlayPainter extends CustomPainter {
     Path Function(Offset) pathBuilder,
   ) {
     canvas.save();
-    if (activeHandle == side && scale > 1.0) {
+    if (activeHandle.value == side && scale.value > 1.0) {
       canvas.translate(center.dx, center.dy);
-      canvas.scale(scale);
+      canvas.scale(scale.value);
       canvas.translate(-center.dx, -center.dy);
     }
     canvas.drawPath(pathBuilder(center), paint);
@@ -187,9 +191,9 @@ class CropOverlayPainter extends CustomPainter {
     CropHandleSide side,
   ) {
     canvas.save();
-    if (activeHandle == side && scale > 1.0) {
+    if (activeHandle.value == side && scale.value > 1.0) {
       canvas.translate(center.dx, center.dy);
-      canvas.scale(scale);
+      canvas.scale(scale.value);
       canvas.translate(-center.dx, -center.dy);
     }
     canvas.drawCircle(center, radius, paint);
@@ -198,8 +202,11 @@ class CropOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CropOverlayPainter oldDelegate) {
-    return oldDelegate.cropRect != cropRect ||
-        oldDelegate.imageRect != imageRect ||
+    // The super class handles repainting via the Listenables,
+    // but we still check if structural properties changed.
+    return oldDelegate.imageRect != imageRect ||
+        oldDelegate.style != style ||
+        oldDelegate.cropRect != cropRect ||
         oldDelegate.activeHandle != activeHandle ||
         oldDelegate.scale != scale;
   }
