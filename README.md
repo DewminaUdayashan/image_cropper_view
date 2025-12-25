@@ -2,7 +2,7 @@
 
 A customizable, pure Dart image cropping widget for Flutter. Easily crop images with preset or custom aspect ratios, rotation, flipping, and advanced UI customization.
 
-<img src="https://github.com/DewminaUdayashan/image_cropper_widget/raw/main/doc/demo.gif" width="250" alt="Demo GIF">
+<img src="https://github.com/DewminaUdayashan/image_cropper_view/blob/main/doc/demo.gif" width="250" alt="Demo GIF">
 
 ## Features
 
