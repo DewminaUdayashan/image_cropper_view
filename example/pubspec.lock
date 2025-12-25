@@ -75,7 +75,7 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  image_cropper_view:
+  image_cropper_widget:
     dependency: "direct main"
     description:
       path: ".."

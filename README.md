@@ -1,8 +1,8 @@
-# Image Cropper View
+# Image Cropper Widget
 
 A customizable, pure Dart image cropping widget for Flutter. Easily crop images with preset or custom aspect ratios, rotation, flipping, and advanced UI customization.
 
-<img src="https://github.com/DewminaUdayashan/image_cropper_view/raw/main/doc/demo.gif" width="250" alt="Demo GIF">
+<img src="https://github.com/DewminaUdayashan/image_cropper_widget/raw/main/doc/demo.gif" width="250" alt="Demo GIF">
 
 ## Features
 
@@ -18,7 +18,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  image_cropper_view: ^1.0.0
+  image_cropper_widget: ^1.0.0
 ```
 
 ## Getting Started
@@ -26,10 +26,10 @@ dependencies:
  Import the package:
 
 ```dart
-import 'package:image_cropper_view/image_cropper_view.dart';
+import 'package:image_cropper_widget/image_cropper_widget.dart';
 ```
 
-Wrap your image with `ImageCropperView` and provide a controller:
+Wrap your image with `ImageCropperWidget` and provide a controller:
 
 ```dart
 class MyCropScreen extends StatefulWidget {
@@ -44,7 +44,7 @@ class _MyCropScreenState extends State<MyCropScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ImageCropperView(
+        ImageCropperWidget(
             image: AssetImage('assets/my_image.png'),
             controller: _controller,
             aspectRatio: CropperRatio.ratio4_3, // Optional: Force 4:3
@@ -90,7 +90,7 @@ _controller.setAspectRatio(CropperRatio.custom); // Free-form
 Customize the look and feel using `CropperStyle`:
 
 ```dart
-ImageCropperView(
+ImageCropperWidget(
   image: ...,
   style: CropperStyle(
     overlayColor: Colors.black.withOpacity(0.7),
@@ -107,7 +107,7 @@ ImageCropperView(
 
 ## API Reference
 
-### ImageCropperView
+### ImageCropperWidget
 
 | Parameter | Type | Description |
 |---|---|---|

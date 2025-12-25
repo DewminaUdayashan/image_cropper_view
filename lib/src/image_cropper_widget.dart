@@ -20,7 +20,7 @@ import 'image_cropper_controller.dart';
 /// * Rotation (90-degree steps or custom angles).
 /// * Flipping (horizontal/vertical).
 /// * Customizable UI styles (overlay color, handle shapes, etc.).
-class ImageCropperView extends StatefulWidget {
+class ImageCropperWidget extends StatefulWidget {
   /// The image to be cropped.
   final ImageProvider image;
 
@@ -48,8 +48,8 @@ class ImageCropperView extends StatefulWidget {
   /// An optional controller to manipulate the cropper state programmatically.
   final ImageCropperController? controller;
 
-  /// Creates an [ImageCropperView].
-  const ImageCropperView({
+  /// Creates an [ImageCropperWidget].
+  const ImageCropperWidget({
     super.key,
     required this.image,
     this.aspectRatio,
@@ -61,14 +61,14 @@ class ImageCropperView extends StatefulWidget {
   });
 
   @override
-  State<ImageCropperView> createState() => ImageCropperViewState();
+  State<ImageCropperWidget> createState() => ImageCropperWidgetState();
 }
 
-/// The state for [ImageCropperView].
+/// The state for [ImageCropperWidget].
 ///
 /// This state holds the internal logic for cropping, rotating, and scaling the image.
 /// It is exposed to allow the [ImageCropperController] to interact with it.
-class ImageCropperViewState extends State<ImageCropperView>
+class ImageCropperWidgetState extends State<ImageCropperWidget>
     with SingleTickerProviderStateMixin {
   ui.Image? _image;
   Size? _imageSize;
@@ -119,7 +119,7 @@ class ImageCropperViewState extends State<ImageCropperView>
   }
 
   @override
-  void didUpdateWidget(ImageCropperView oldWidget) {
+  void didUpdateWidget(ImageCropperWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller?.detach();
