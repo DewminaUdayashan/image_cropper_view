@@ -29,12 +29,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final ImageCropperController _controller = ImageCropperController();
+  // 1. Initialize the controller to manage the cropper state
+  final _controller = ImageCropperController();
   CropperRatio? _aspectRatio;
   Uint8List? _croppedImage;
   HandleType _handleType = HandleType.corner;
 
   void _cropImage() async {
+    // 2. Trigger the crop action
     final Uint8List? bytes = await _controller.crop();
     if (bytes != null) {
       setState(() {
@@ -73,10 +75,12 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ImageCropperView(
+                // 3. Configure the view
                 borderRadius: BorderRadius.circular(16.0),
                 controller: _controller,
                 image: const AssetImage('assets/sample-image.png'),
                 aspectRatio: _aspectRatio,
+                // 4. Customize the look and feel
                 style: CropperStyle(
                   overlayColor: Colors.black54,
                   borderColor: Colors.white,
@@ -99,6 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return _AspectRatioButton(
                     label: ratio.label,
                     onPressed: () {
+                      // 5. Update aspect ratio programmatically
                       _controller.setAspectRatio(ratio);
                       setState(() => _aspectRatio = ratio);
                     },
