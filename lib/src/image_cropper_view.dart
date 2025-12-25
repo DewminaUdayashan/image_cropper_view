@@ -14,7 +14,7 @@ class ImageCropperView extends StatefulWidget {
   final ImageProvider image;
   final CropperRatio? aspectRatio;
   final CropperStyle style;
-  final BoxDecoration? decoration;
+  final BorderRadiusGeometry borderRadius;
   final ImageCropperController? controller;
 
   const ImageCropperView({
@@ -22,7 +22,7 @@ class ImageCropperView extends StatefulWidget {
     required this.image,
     this.aspectRatio,
     this.style = const CropperStyle(),
-    this.decoration,
+    this.borderRadius = BorderRadius.zero,
     this.controller,
   });
 
@@ -209,16 +209,54 @@ class ImageCropperViewState extends State<ImageCropperView>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: widget.decoration,
+    return ClipRRect(
+      borderRadius: widget.borderRadius,
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : LayoutBuilder(
               builder: (context, constraints) {
-                final Size viewportSize = Size(
-                  constraints.maxWidth,
-                  constraints.maxHeight,
-                );
+                Size viewportSize;
+                if (!constraints.hasBoundedHeight) {
+                  // Adaptive height: calculate based on image aspect ratio
+                  if (_imageSize != null) {
+                    final double rads = _rotation;
+                    final double cosVal = (math.cos(rads)).abs();
+                    final double sinVal = (math.sin(rads)).abs();
+                    final double width = _imageSize!.width;
+                    final double height = _imageSize!.height;
+
+                    final double rotatedWidth =
+                        width * cosVal + height * sinVal;
+                    final double rotatedHeight =
+                        width * sinVal + height * cosVal;
+
+                    final double aspectRatio = rotatedHeight == 0
+                        ? 1.0
+                        : rotatedWidth / rotatedHeight;
+                    double desiredHeight = constraints.maxWidth / aspectRatio;
+
+                    if (desiredHeight.isInfinite || desiredHeight.isNaN) {
+                      desiredHeight = constraints.maxWidth;
+                    }
+                    viewportSize = Size(constraints.maxWidth, desiredHeight);
+                  } else {
+                    viewportSize = Size(
+                      constraints.maxWidth,
+                      constraints.maxWidth,
+                    );
+                  }
+                } else {
+                  viewportSize = Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                  );
+                }
+
+                // Ensure finite height
+                if (viewportSize.height.isInfinite ||
+                    viewportSize.height.isNaN) {
+                  viewportSize = Size(viewportSize.width, 300);
+                }
 
                 // Calculate where the image sits
                 _imageRect = _calculateImageRect(viewportSize);
@@ -228,51 +266,56 @@ class ImageCropperViewState extends State<ImageCropperView>
                   _initializeCropRect(_imageRect!);
                 }
 
-                return Stack(
-                  children: [
-                    // The Background Image
-                    Positioned.fromRect(
-                      rect: _imageRect!,
-                      child: Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..rotateZ(_rotation)
-                          ..scale(
-                            _flipX ? -1.0 : 1.0,
-                            _flipY ? -1.0 : 1.0,
-                            1.0,
-                          ),
-                        child: RawImage(image: _image, fit: BoxFit.fill),
-                      ),
-                    ),
-                    // The Overlay
-                    if (_imageRect != null)
-                      ValueListenableBuilder<Rect?>(
-                        valueListenable: _cropRectNotifier,
-                        builder: (context, cropRect, child) {
-                          if (cropRect == null) return const SizedBox.shrink();
-                          return CustomPaint(
-                            size: Size.infinite,
-                            painter: CropOverlayPainter(
-                              imageRect: _imageRect!,
-                              cropRect: _cropRectNotifier,
-                              style: widget.style,
-                              activeHandle: _activeHandleNotifier,
-                              scale: _scaleController,
+                return SizedBox(
+                  width: viewportSize.width,
+                  height: viewportSize.height,
+                  child: Stack(
+                    children: [
+                      // The Background Image
+                      Positioned.fromRect(
+                        rect: _imageRect!,
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..rotateZ(_rotation)
+                            ..scale(
+                              _flipX ? -1.0 : 1.0,
+                              _flipY ? -1.0 : 1.0,
+                              1.0,
                             ),
-                          );
-                        },
-                      ),
-                    // Interaction Layer
-                    if (_imageRect != null)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onPanStart: onPanStart,
-                          onPanUpdate: onPanUpdate,
-                          onPanEnd: onPanEnd,
+                          child: RawImage(image: _image, fit: BoxFit.fill),
                         ),
                       ),
-                  ],
+                      // The Overlay
+                      if (_imageRect != null)
+                        ValueListenableBuilder<Rect?>(
+                          valueListenable: _cropRectNotifier,
+                          builder: (context, cropRect, child) {
+                            if (cropRect == null)
+                              return const SizedBox.shrink();
+                            return CustomPaint(
+                              size: Size.infinite,
+                              painter: CropOverlayPainter(
+                                imageRect: _imageRect!,
+                                cropRect: _cropRectNotifier,
+                                style: widget.style,
+                                activeHandle: _activeHandleNotifier,
+                                scale: _scaleController,
+                              ),
+                            );
+                          },
+                        ),
+                      // Interaction Layer
+                      if (_imageRect != null)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onPanStart: onPanStart,
+                            onPanUpdate: onPanUpdate,
+                            onPanEnd: onPanEnd,
+                          ),
+                        ),
+                    ],
+                  ),
                 );
               },
             ),

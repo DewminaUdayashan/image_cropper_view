@@ -71,35 +71,23 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16.0),
-                  child: SizedBox(
-                    height: MediaQuery.sizeOf(context).height / 2,
-                    child: ImageCropperView(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      controller: _controller,
-                      image: const NetworkImage(
-                        'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=80',
-                      ),
-                      aspectRatio: _aspectRatio,
-                      style: const CropperStyle(
-                        overlayColor: Colors.black54,
-                        borderColor: Colors.white,
-                        borderWidth: 1.0,
-                        handlerSize: 30,
-                        handlerColor: Colors.white,
-                        handleType: HandleType.corner,
-                        handlerThickness: 6,
-                      ),
-                    ),
-                  ),
-                ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ImageCropperView(
+              borderRadius: BorderRadius.circular(16.0),
+              controller: _controller,
+              image: const NetworkImage(
+                'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=80',
+              ),
+              aspectRatio: _aspectRatio,
+              style: const CropperStyle(
+                overlayColor: Colors.black54,
+                borderColor: Colors.white,
+                borderWidth: 1.0,
+                handlerSize: 30,
+                handlerColor: Colors.white,
+                handleType: HandleType.corner,
+                handlerThickness: 6,
               ),
             ),
           ),
