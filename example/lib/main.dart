@@ -32,6 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final ImageCropperController _controller = ImageCropperController();
   CropperRatio? _aspectRatio;
   Uint8List? _croppedImage;
+  HandleType _handleType = HandleType.corner;
 
   void _cropImage() async {
     final Uint8List? bytes = await _controller.crop();
@@ -76,18 +77,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 controller: _controller,
                 image: const AssetImage('assets/sample-image.png'),
                 aspectRatio: _aspectRatio,
-                style: const CropperStyle(
+                style: CropperStyle(
                   overlayColor: Colors.black54,
                   borderColor: Colors.white,
+                  handlerColor: Colors.white,
                   borderWidth: 1.0,
                   handlerSize: 30,
-                  handlerColor: Colors.white,
-                  handleType: HandleType.corner,
+                  handleType: _handleType,
                   handlerThickness: 6,
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Wrap(
@@ -130,6 +132,32 @@ class _MyHomePageState extends State<MyHomePage> {
                   tooltip: 'Flip Vertical',
                 ),
               ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  const Text('Handle Type: '),
+                  const SizedBox(width: 10),
+                  DropdownButton<HandleType>(
+                    value: _handleType,
+                    items: HandleType.values.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(type.name.toUpperCase()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _handleType = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
           ],

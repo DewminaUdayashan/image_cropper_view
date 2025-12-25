@@ -17,9 +17,9 @@ class CropperStyle {
 
   const CropperStyle({
     this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
-    this.borderColor = Colors.white,
+    this.borderColor = Colors.amberAccent,
     this.borderWidth = 2.0,
-    this.handlerColor = Colors.white,
+    this.handlerColor = Colors.amber,
     this.handlerSize = 20.0,
     this.handleType = HandleType.circle,
     this.handlerThickness = 4.0,
