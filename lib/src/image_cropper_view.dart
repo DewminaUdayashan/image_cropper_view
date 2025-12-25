@@ -271,16 +271,56 @@ class ImageCropperViewState extends State<ImageCropperView>
                     // The Background Image
                     Positioned.fromRect(
                       rect: _imageRect!,
-                      child: Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..rotateZ(_rotation)
-                          ..scale(
-                            _flipX ? -1.0 : 1.0,
-                            _flipY ? -1.0 : 1.0,
-                            1.0,
-                          ),
-                        child: RawImage(image: _image, fit: BoxFit.fill),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // _imageRect assumes the ROTATED size.
+                          // We need to find the scale factor to fit the rotated image into _imageRect
+                          // and then apply that scale to the original (unrotated) image size.
+
+                          if (_imageSize == null)
+                            return const SizedBox.shrink();
+
+                          final double rads = _rotation;
+                          final double cosVal = (math.cos(rads)).abs();
+                          final double sinVal = (math.sin(rads)).abs();
+
+                          final double rotatedWidth =
+                              (_imageSize!.width * cosVal) +
+                              (_imageSize!.height * sinVal);
+                          // Scale factor between "Native Rotated Size" and "Displayed Rotated Size" (_imageRect)
+                          final double scale = _imageRect!.width / rotatedWidth;
+
+                          // The unrotated display size
+                          final double displayWidth = _imageSize!.width * scale;
+                          final double displayHeight =
+                              _imageSize!.height * scale;
+
+                          return OverflowBox(
+                            minWidth: 0,
+                            minHeight: 0,
+                            maxWidth: double.infinity,
+                            maxHeight: double.infinity,
+                            alignment: Alignment.center,
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..rotateZ(_rotation)
+                                ..scale(
+                                  _flipX ? -1.0 : 1.0,
+                                  _flipY ? -1.0 : 1.0,
+                                  1.0,
+                                ),
+                              child: SizedBox(
+                                width: displayWidth,
+                                height: displayHeight,
+                                child: RawImage(
+                                  image: _image,
+                                  fit: BoxFit.fill,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     // The Overlay
