@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -302,12 +303,104 @@ class ImageCropperViewState extends State<ImageCropperView>
                       ),
                     // Interaction Layer
                     if (_imageRect != null)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onPanStart: onPanStart,
-                          onPanUpdate: onPanUpdate,
-                          onPanEnd: onPanEnd,
-                        ),
+                      ValueListenableBuilder<Rect?>(
+                        valueListenable: _cropRectNotifier,
+                        builder: (context, cropRect, child) {
+                          if (cropRect == null) return const SizedBox.shrink();
+
+                          final double hitSize = widget.style.handlerSize * 1.5;
+
+                          // Discrete Touch Targets
+                          return Stack(
+                            children: [
+                              // 1. Move Target (Center)
+                              Positioned.fromRect(
+                                rect: cropRect,
+                                child: _ImmediateGestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onPanDown: (d) =>
+                                      _onPanDown(d, CropHandleSide.move),
+                                  onPanStart: (d) =>
+                                      _onPanStart(d, CropHandleSide.move),
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  onPanCancel: _onPanCancel,
+                                ),
+                              ),
+                              // 2. Corner Handles
+                              // Top Left
+                              Positioned(
+                                left: cropRect.left - hitSize / 2,
+                                top: cropRect.top - hitSize / 2,
+                                width: hitSize,
+                                height: hitSize,
+                                child: _ImmediateGestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onPanDown: (d) =>
+                                      _onPanDown(d, CropHandleSide.topLeft),
+                                  onPanStart: (d) =>
+                                      _onPanStart(d, CropHandleSide.topLeft),
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  onPanCancel: _onPanCancel,
+                                ),
+                              ),
+                              // Top Right
+                              Positioned(
+                                left: cropRect.right - hitSize / 2,
+                                top: cropRect.top - hitSize / 2,
+                                width: hitSize,
+                                height: hitSize,
+                                child: _ImmediateGestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onPanDown: (d) =>
+                                      _onPanDown(d, CropHandleSide.topRight),
+                                  onPanStart: (d) =>
+                                      _onPanStart(d, CropHandleSide.topRight),
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  onPanCancel: _onPanCancel,
+                                ),
+                              ),
+                              // Bottom Left
+                              Positioned(
+                                left: cropRect.left - hitSize / 2,
+                                top: cropRect.bottom - hitSize / 2,
+                                width: hitSize,
+                                height: hitSize,
+                                child: _ImmediateGestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onPanDown: (d) =>
+                                      _onPanDown(d, CropHandleSide.bottomLeft),
+                                  onPanStart: (d) =>
+                                      _onPanStart(d, CropHandleSide.bottomLeft),
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  onPanCancel: _onPanCancel,
+                                ),
+                              ),
+                              // Bottom Right
+                              Positioned(
+                                left: cropRect.right - hitSize / 2,
+                                top: cropRect.bottom - hitSize / 2,
+                                width: hitSize,
+                                height: hitSize,
+                                child: _ImmediateGestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onPanDown: (d) =>
+                                      _onPanDown(d, CropHandleSide.bottomRight),
+                                  onPanStart: (d) => _onPanStart(
+                                    d,
+                                    CropHandleSide.bottomRight,
+                                  ),
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  onPanCancel: _onPanCancel,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -320,35 +413,46 @@ class ImageCropperViewState extends State<ImageCropperView>
   }
   // --- Interaction Logic ---
 
+  // --- Interaction Logic ---
+
   Offset? startTouchPoint;
   Rect? startCropRect;
 
-  void onPanStart(DragStartDetails details) {
+  void _onPanDown(DragDownDetails details, CropHandleSide side) {
     if (_cropRectNotifier.value == null) return;
 
-    final Offset pos = details.localPosition;
-    _activeHandleNotifier.value = hitTest(pos);
-    startTouchPoint = pos;
-    startCropRect = _cropRectNotifier.value;
+    // Immediate feedback on touch
+    _activeHandleNotifier.value = side;
 
-    if (_activeHandleNotifier.value != null) {
-      if (widget.style.enableFeedback) {
-        HapticFeedback.lightImpact();
-      }
-      if (widget.style.enableScaleAnimation) {
-        _scaleController.forward();
-      }
+    if (widget.style.enableFeedback) {
+      HapticFeedback.lightImpact();
+    }
+    if (widget.style.enableScaleAnimation) {
+      _scaleController.forward();
     }
   }
 
-  void onPanUpdate(DragUpdateDetails details) {
+  void _onPanStart(DragStartDetails details, CropHandleSide side) {
+    if (_cropRectNotifier.value == null) return;
+
+    // Initialize drag state
+    startTouchPoint = details.globalPosition;
+    startCropRect = _cropRectNotifier.value;
+
+    // Ensure active handle is set (in case Down didn't fire or was reset, unlikely but safe)
+    _activeHandleNotifier.value = side;
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
     if (_activeHandleNotifier.value == null ||
         startTouchPoint == null ||
         startCropRect == null ||
         _imageRect == null) {
       return;
     }
-    final Offset delta = details.localPosition - startTouchPoint!;
+
+    final Offset delta = details.globalPosition - startTouchPoint!;
+
     Rect newRect = startCropRect!;
     final CropHandleSide handle = _activeHandleNotifier.value!;
 
@@ -376,37 +480,21 @@ class ImageCropperViewState extends State<ImageCropperView>
     _cropRectNotifier.value = newRect;
   }
 
-  void onPanEnd(DragEndDetails details) {
+  void _onPanEnd(DragEndDetails details) {
+    _resetInteraction();
+  }
+
+  void _onPanCancel() {
+    _resetInteraction();
+  }
+
+  void _resetInteraction() {
     if (widget.style.enableScaleAnimation) {
       _scaleController.reverse();
     }
     _activeHandleNotifier.value = null;
     startTouchPoint = null;
     startCropRect = null;
-  }
-
-  CropHandleSide? hitTest(Offset point) {
-    if (_cropRectNotifier.value == null) return null;
-    final Rect cropRect = _cropRectNotifier.value!;
-
-    final double hitSize = widget.style.handlerSize * 1.5;
-
-    if ((point - cropRect.topLeft).distance <= hitSize) {
-      return CropHandleSide.topLeft;
-    }
-    if ((point - cropRect.topRight).distance <= hitSize) {
-      return CropHandleSide.topRight;
-    }
-    if ((point - cropRect.bottomLeft).distance <= hitSize) {
-      return CropHandleSide.bottomLeft;
-    }
-    if ((point - cropRect.bottomRight).distance <= hitSize) {
-      return CropHandleSide.bottomRight;
-    }
-
-    if (cropRect.contains(point)) return CropHandleSide.move;
-
-    return null;
   }
 
   Rect resizeRect(
@@ -699,5 +787,85 @@ class ImageCropperViewState extends State<ImageCropperView>
       format: ui.ImageByteFormat.png,
     );
     return byteData?.buffer.asUint8List();
+  }
+}
+
+class _ImmediateGestureDetector extends StatefulWidget {
+  final void Function(DragDownDetails details)? onPanDown;
+  final void Function(DragStartDetails details)? onPanStart;
+  final void Function(DragUpdateDetails details)? onPanUpdate;
+  final void Function(DragEndDetails details)? onPanEnd;
+  final void Function()? onPanCancel;
+  final HitTestBehavior? behavior;
+
+  const _ImmediateGestureDetector({
+    this.onPanDown,
+    this.onPanStart,
+    this.onPanUpdate,
+    this.onPanEnd,
+    this.onPanCancel,
+    this.behavior,
+  });
+
+  @override
+  State<_ImmediateGestureDetector> createState() =>
+      _ImmediateGestureDetectorState();
+}
+
+class _ImmediateGestureDetectorState extends State<_ImmediateGestureDetector> {
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      behavior: widget.behavior,
+      gestures: {
+        ImmediateMultiDragGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<
+              ImmediateMultiDragGestureRecognizer
+            >(() => ImmediateMultiDragGestureRecognizer(), (
+              ImmediateMultiDragGestureRecognizer instance,
+            ) {
+              instance.onStart = (Offset position) {
+                if (widget.onPanDown != null) {
+                  widget.onPanDown!(DragDownDetails(globalPosition: position));
+                }
+                if (widget.onPanStart != null) {
+                  // Approximate timestamp or standard null; ImmediateRecognizer doesn't provide sourceTimestamp easy here
+                  // But we mainly need position
+                  widget.onPanStart!(
+                    DragStartDetails(globalPosition: position),
+                  );
+                }
+                return _DragHandler(
+                  onUpdate: widget.onPanUpdate,
+                  onEnd: widget.onPanEnd,
+                  onCancel: widget.onPanCancel,
+                );
+              };
+            }),
+      },
+    );
+  }
+}
+
+class _DragHandler extends Drag {
+  final void Function(DragUpdateDetails details)? onUpdate;
+  final void Function(DragEndDetails details)? onEnd;
+  final void Function()? onCancel;
+
+  _DragHandler({this.onUpdate, this.onEnd, this.onCancel});
+
+  @override
+  void update(DragUpdateDetails details) {
+    onUpdate?.call(details);
+  }
+
+  @override
+  void end(DragEndDetails details) {
+    onEnd?.call(details);
+  }
+
+  @override
+  void cancel() {
+    onCancel?.call();
   }
 }
