@@ -15,6 +15,8 @@ class ImageCropperView extends StatefulWidget {
   final CropperRatio? aspectRatio;
   final CropperStyle style;
   final BorderRadiusGeometry borderRadius;
+  final Widget? loadingWidget;
+  final BoxFit fit;
   final ImageCropperController? controller;
 
   const ImageCropperView({
@@ -23,6 +25,8 @@ class ImageCropperView extends StatefulWidget {
     this.aspectRatio,
     this.style = const CropperStyle(),
     this.borderRadius = BorderRadius.zero,
+    this.loadingWidget,
+    this.fit = BoxFit.contain,
     this.controller,
   });
 
@@ -39,7 +43,7 @@ class ImageCropperViewState extends State<ImageCropperView>
   late final ValueNotifier<Rect?> _cropRectNotifier;
   late final ValueNotifier<CropHandleSide?> _activeHandleNotifier;
 
-  bool _isLoading = true;
+  late final ValueNotifier<bool> _isLoadingNotifier;
   late AnimationController _scaleController;
   CropperRatio? _currentAspectRatio;
 
@@ -51,6 +55,7 @@ class ImageCropperViewState extends State<ImageCropperView>
   @override
   void initState() {
     super.initState();
+    _isLoadingNotifier = ValueNotifier(true);
     _cropRectNotifier = ValueNotifier(null);
     _activeHandleNotifier = ValueNotifier(null);
 
@@ -74,6 +79,7 @@ class ImageCropperViewState extends State<ImageCropperView>
     _scaleController.dispose();
     _cropRectNotifier.dispose();
     _activeHandleNotifier.dispose();
+    _isLoadingNotifier.dispose();
     widget.controller?.detach();
     super.dispose();
   }
@@ -88,6 +94,13 @@ class ImageCropperViewState extends State<ImageCropperView>
     if (oldWidget.image != widget.image) {
       _loadImage();
     }
+    if (oldWidget.fit != widget.fit) {
+      // Re-calculate layout if fit changes
+      setState(() {
+        // _imageRect will be recalculated in build
+        _cropRectNotifier.value = null;
+      });
+    }
 
     // If aspect ratio changes via WIDGET param, update internal state
     if (oldWidget.aspectRatio != widget.aspectRatio) {
@@ -101,9 +114,7 @@ class ImageCropperViewState extends State<ImageCropperView>
   }
 
   Future<void> _loadImage() async {
-    setState(() {
-      _isLoading = true;
-    });
+    _isLoadingNotifier.value = true;
 
     final ImageStream stream = widget.image.resolve(ImageConfiguration.empty);
     final Completer<ui.Image> completer = Completer<ui.Image>();
@@ -125,16 +136,12 @@ class ImageCropperViewState extends State<ImageCropperView>
     try {
       _image = await completer.future;
       _imageSize = Size(_image!.width.toDouble(), _image!.height.toDouble());
-      setState(() {
-        _isLoading = false;
-        // _cropRect will be initialized in build/layout because we need viewport size
-        _imageRect = null;
-      });
+
+      _imageRect = null;
+      _isLoadingNotifier.value = false;
     } catch (e) {
       debugPrint('Error loading image: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      _isLoadingNotifier.value = false;
     }
   }
 
@@ -144,9 +151,6 @@ class ImageCropperViewState extends State<ImageCropperView>
 
     // Calculate effective image size based on rotation
     final double rads = _rotation;
-    // Basic bounding box rotation:
-    // newW = w*|cos| + h*|sin|
-    // newH = w*|sin| + h*|cos|
     final double cosVal = (math.cos(rads)).abs();
     final double sinVal = (math.sin(rads)).abs();
 
@@ -156,26 +160,16 @@ class ImageCropperViewState extends State<ImageCropperView>
     final double rotatedWidth = width * cosVal + height * sinVal;
     final double rotatedHeight = width * sinVal + height * cosVal;
 
-    final double imageAspectRatio = rotatedWidth / rotatedHeight;
-    final double viewportAspectRatio = viewportSize.width / viewportSize.height;
+    final Size inputSize = Size(rotatedWidth, rotatedHeight);
 
-    double drawWidth;
-    double drawHeight;
+    // Apply standard BoxFit logic
+    final FittedSizes sizes = applyBoxFit(widget.fit, inputSize, viewportSize);
+    final Size destinationSize = sizes.destination;
 
-    if (imageAspectRatio > viewportAspectRatio) {
-      // Image is wider than viewport
-      drawWidth = viewportSize.width;
-      drawHeight = viewportSize.width / imageAspectRatio;
-    } else {
-      // Image is taller than viewport
-      drawHeight = viewportSize.height;
-      drawWidth = viewportSize.height * imageAspectRatio;
-    }
+    final double dx = (viewportSize.width - destinationSize.width) / 2;
+    final double dy = (viewportSize.height - destinationSize.height) / 2;
 
-    final double dx = (viewportSize.width - drawWidth) / 2;
-    final double dy = (viewportSize.height - drawHeight) / 2;
-
-    return Rect.fromLTWH(dx, dy, drawWidth, drawHeight);
+    return Rect.fromLTWH(dx, dy, destinationSize.width, destinationSize.height);
   }
 
   // Initialize crop rect to center of image, obeying aspect ratio if set
@@ -211,114 +205,117 @@ class ImageCropperViewState extends State<ImageCropperView>
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: widget.borderRadius,
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                Size viewportSize;
-                if (!constraints.hasBoundedHeight) {
-                  // Adaptive height: calculate based on image aspect ratio
-                  if (_imageSize != null) {
-                    final double rads = _rotation;
-                    final double cosVal = (math.cos(rads)).abs();
-                    final double sinVal = (math.sin(rads)).abs();
-                    final double width = _imageSize!.width;
-                    final double height = _imageSize!.height;
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isLoadingNotifier,
+        builder: (context, isLoading, child) {
+          if (isLoading) {
+            return widget.loadingWidget ??
+                const Center(child: CircularProgressIndicator());
+          }
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              Size viewportSize;
+              if (!constraints.hasBoundedHeight) {
+                // Adaptive height: calculate based on image aspect ratio
+                if (_imageSize != null) {
+                  final double rads = _rotation;
+                  final double cosVal = (math.cos(rads)).abs();
+                  final double sinVal = (math.sin(rads)).abs();
+                  final double width = _imageSize!.width;
+                  final double height = _imageSize!.height;
 
-                    final double rotatedWidth =
-                        width * cosVal + height * sinVal;
-                    final double rotatedHeight =
-                        width * sinVal + height * cosVal;
+                  final double rotatedWidth = width * cosVal + height * sinVal;
+                  final double rotatedHeight = width * sinVal + height * cosVal;
 
-                    final double aspectRatio = rotatedHeight == 0
-                        ? 1.0
-                        : rotatedWidth / rotatedHeight;
-                    double desiredHeight = constraints.maxWidth / aspectRatio;
+                  final double aspectRatio = rotatedHeight == 0
+                      ? 1.0
+                      : rotatedWidth / rotatedHeight;
+                  double desiredHeight = constraints.maxWidth / aspectRatio;
 
-                    if (desiredHeight.isInfinite || desiredHeight.isNaN) {
-                      desiredHeight = constraints.maxWidth;
-                    }
-                    viewportSize = Size(constraints.maxWidth, desiredHeight);
-                  } else {
-                    viewportSize = Size(
-                      constraints.maxWidth,
-                      constraints.maxWidth,
-                    );
+                  if (desiredHeight.isInfinite || desiredHeight.isNaN) {
+                    desiredHeight = constraints.maxWidth;
                   }
+                  viewportSize = Size(constraints.maxWidth, desiredHeight);
                 } else {
                   viewportSize = Size(
                     constraints.maxWidth,
-                    constraints.maxHeight,
+                    constraints.maxWidth,
                   );
                 }
+              } else {
+                viewportSize = Size(
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                );
+              }
 
-                // Ensure finite height
-                if (viewportSize.height.isInfinite ||
-                    viewportSize.height.isNaN) {
-                  viewportSize = Size(viewportSize.width, 300);
-                }
+              // Ensure finite height
+              if (viewportSize.height.isInfinite || viewportSize.height.isNaN) {
+                viewportSize = Size(viewportSize.width, 300);
+              }
 
-                // Calculate where the image sits
-                _imageRect = _calculateImageRect(viewportSize);
+              // Calculate where the image sits
+              _imageRect = _calculateImageRect(viewportSize);
 
-                // Initialize crop rect if needed
-                if (_cropRectNotifier.value == null && _imageRect != null) {
-                  _initializeCropRect(_imageRect!);
-                }
+              // Initialize crop rect if needed
+              if (_cropRectNotifier.value == null && _imageRect != null) {
+                _initializeCropRect(_imageRect!);
+              }
 
-                return SizedBox(
-                  width: viewportSize.width,
-                  height: viewportSize.height,
-                  child: Stack(
-                    children: [
-                      // The Background Image
-                      Positioned.fromRect(
-                        rect: _imageRect!,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..rotateZ(_rotation)
-                            ..scale(
-                              _flipX ? -1.0 : 1.0,
-                              _flipY ? -1.0 : 1.0,
-                              1.0,
+              return SizedBox(
+                width: viewportSize.width,
+                height: viewportSize.height,
+                child: Stack(
+                  children: [
+                    // The Background Image
+                    Positioned.fromRect(
+                      rect: _imageRect!,
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..rotateZ(_rotation)
+                          ..scale(
+                            _flipX ? -1.0 : 1.0,
+                            _flipY ? -1.0 : 1.0,
+                            1.0,
+                          ),
+                        child: RawImage(image: _image, fit: BoxFit.fill),
+                      ),
+                    ),
+                    // The Overlay
+                    if (_imageRect != null)
+                      ValueListenableBuilder<Rect?>(
+                        valueListenable: _cropRectNotifier,
+                        builder: (context, cropRect, child) {
+                          if (cropRect == null) return const SizedBox.shrink();
+                          return CustomPaint(
+                            size: Size.infinite,
+                            painter: CropOverlayPainter(
+                              imageRect: _imageRect!,
+                              cropRect: _cropRectNotifier,
+                              style: widget.style,
+                              activeHandle: _activeHandleNotifier,
+                              scale: _scaleController,
                             ),
-                          child: RawImage(image: _image, fit: BoxFit.fill),
+                          );
+                        },
+                      ),
+                    // Interaction Layer
+                    if (_imageRect != null)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onPanStart: onPanStart,
+                          onPanUpdate: onPanUpdate,
+                          onPanEnd: onPanEnd,
                         ),
                       ),
-                      // The Overlay
-                      if (_imageRect != null)
-                        ValueListenableBuilder<Rect?>(
-                          valueListenable: _cropRectNotifier,
-                          builder: (context, cropRect, child) {
-                            if (cropRect == null)
-                              return const SizedBox.shrink();
-                            return CustomPaint(
-                              size: Size.infinite,
-                              painter: CropOverlayPainter(
-                                imageRect: _imageRect!,
-                                cropRect: _cropRectNotifier,
-                                style: widget.style,
-                                activeHandle: _activeHandleNotifier,
-                                scale: _scaleController,
-                              ),
-                            );
-                          },
-                        ),
-                      // Interaction Layer
-                      if (_imageRect != null)
-                        Positioned.fill(
-                          child: GestureDetector(
-                            onPanStart: onPanStart,
-                            onPanUpdate: onPanUpdate,
-                            onPanEnd: onPanEnd,
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
   // --- Interaction Logic ---
