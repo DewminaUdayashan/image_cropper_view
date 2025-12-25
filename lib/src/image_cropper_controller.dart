@@ -1,20 +1,20 @@
 import 'dart:typed_data';
 
 import 'cropper_ratio.dart';
-import 'image_cropper_view.dart';
+import 'image_cropper_widget.dart';
 
-/// A controller to manipulate the [ImageCropperView] state programmatically.
+/// A controller to manipulate the [ImageCropperWidget] state programmatically.
 class ImageCropperController {
-  ImageCropperViewState? _state;
+  ImageCropperWidgetState? _state;
 
-  /// Attaches the controller to the [ImageCropperView] state.
+  /// Attaches the controller to the [ImageCropperWidget] state.
   ///
-  /// This is called automatically by [ImageCropperView] when the controller is provided.
-  void attach(ImageCropperViewState state) {
+  /// This is called automatically by [ImageCropperWidget] when the controller is provided.
+  void attach(ImageCropperWidgetState state) {
     _state = state;
   }
 
-  /// Detaches the controller from the [ImageCropperView] state.
+  /// Detaches the controller from the [ImageCropperWidget] state.
   void detach() {
     _state = null;
   }

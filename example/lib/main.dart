@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_cropper_view/image_cropper_view.dart';
+import 'package:image_cropper_widget/image_cropper_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -74,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: ImageCropperView(
+              child: ImageCropperWidget(
                 // 3. Configure the view
                 borderRadius: BorderRadius.circular(16.0),
                 controller: _controller,
