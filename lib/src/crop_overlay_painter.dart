@@ -3,15 +3,42 @@ import 'package:flutter/material.dart';
 
 import 'cropper_style.dart';
 
-enum CropHandleSide { topLeft, topRight, bottomLeft, bottomRight, move }
+/// Identifies which handle or part of the crop area is being interacted with.
+enum CropHandleSide {
+  /// Top-left corner handle.
+  topLeft,
 
+  /// Top-right corner handle.
+  topRight,
+
+  /// Bottom-left corner handle.
+  bottomLeft,
+
+  /// Bottom-right corner handle.
+  bottomRight,
+
+  /// The entire crop rect (for moving/panning).
+  move,
+}
+
+/// A custom painter that draws the crop overlay, border, and handles.
 class CropOverlayPainter extends CustomPainter {
+  /// The bounding box of the displayed image.
   final Rect imageRect;
+
+  /// The current crop rectangle.
   final ValueListenable<Rect?> cropRect;
+
+  /// The visual style configuration.
   final CropperStyle style;
+
+  /// The handle currently being interacted with (for highlighting).
   final ValueListenable<CropHandleSide?> activeHandle;
+
+  /// The animation scale for the active handle.
   final ValueListenable<double> scale;
 
+  /// Creates a [CropOverlayPainter].
   CropOverlayPainter({
     required this.imageRect,
     required this.cropRect,

@@ -11,15 +11,44 @@ import 'cropper_ratio.dart';
 import 'cropper_style.dart';
 import 'image_cropper_controller.dart';
 
+/// A widget that provides an image cropping interface.
+///
+/// This widget displays an image and an overlay that allows the user to select
+/// a rectangular crop area. It supports features like:
+/// * Constrained aspect ratios (e.g., 1:1, 16:9).
+/// * Free-form cropping.
+/// * Rotation (90-degree steps or custom angles).
+/// * Flipping (horizontal/vertical).
+/// * Customizable UI styles (overlay color, handle shapes, etc.).
 class ImageCropperView extends StatefulWidget {
+  /// The image to be cropped.
   final ImageProvider image;
+
+  /// The initial aspect ratio for the crop area.
+  ///
+  /// If null, it defaults to a free-form crop (or the user customizes it).
   final CropperRatio? aspectRatio;
+
+  /// The visual style configuration for the cropper overlay.
   final CropperStyle style;
+
+  /// The border radius of the widget itself (clipping the view).
   final BorderRadiusGeometry borderRadius;
+
+  /// A widget to display while the image is loading.
+  ///
+  /// If null, a [CircularProgressIndicator] is shown.
   final Widget? loadingWidget;
+
+  /// How the image should be inscribed into the available space.
+  ///
+  /// Defaults to [BoxFit.contain].
   final BoxFit fit;
+
+  /// An optional controller to manipulate the cropper state programmatically.
   final ImageCropperController? controller;
 
+  /// Creates an [ImageCropperView].
   const ImageCropperView({
     super.key,
     required this.image,
@@ -35,6 +64,10 @@ class ImageCropperView extends StatefulWidget {
   State<ImageCropperView> createState() => ImageCropperViewState();
 }
 
+/// The state for [ImageCropperView].
+///
+/// This state holds the internal logic for cropping, rotating, and scaling the image.
+/// It is exposed to allow the [ImageCropperController] to interact with it.
 class ImageCropperViewState extends State<ImageCropperView>
     with SingleTickerProviderStateMixin {
   ui.Image? _image;
