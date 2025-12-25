@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -41,6 +42,11 @@ class ImageCropperViewState extends State<ImageCropperView>
   bool _isLoading = true;
   late AnimationController _scaleController;
   CropperRatio? _currentAspectRatio;
+
+  // Transform State
+  double _rotation = 0.0; // Radians
+  bool _flipX = false;
+  bool _flipY = false;
 
   @override
   void initState() {
@@ -136,7 +142,21 @@ class ImageCropperViewState extends State<ImageCropperView>
   Rect _calculateImageRect(Size viewportSize) {
     if (_imageSize == null) return Rect.zero;
 
-    final double imageAspectRatio = _imageSize!.width / _imageSize!.height;
+    // Calculate effective image size based on rotation
+    final double rads = _rotation;
+    // Basic bounding box rotation:
+    // newW = w*|cos| + h*|sin|
+    // newH = w*|sin| + h*|cos|
+    final double cosVal = (math.cos(rads)).abs();
+    final double sinVal = (math.sin(rads)).abs();
+
+    final double width = _imageSize!.width;
+    final double height = _imageSize!.height;
+
+    final double rotatedWidth = width * cosVal + height * sinVal;
+    final double rotatedHeight = width * sinVal + height * cosVal;
+
+    final double imageAspectRatio = rotatedWidth / rotatedHeight;
     final double viewportAspectRatio = viewportSize.width / viewportSize.height;
 
     double drawWidth;
@@ -213,7 +233,17 @@ class ImageCropperViewState extends State<ImageCropperView>
                     // The Background Image
                     Positioned.fromRect(
                       rect: _imageRect!,
-                      child: RawImage(image: _image, fit: BoxFit.fill),
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..rotateZ(_rotation)
+                          ..scale(
+                            _flipX ? -1.0 : 1.0,
+                            _flipY ? -1.0 : 1.0,
+                            1.0,
+                          ),
+                        child: RawImage(image: _image, fit: BoxFit.fill),
+                      ),
                     ),
                     // The Overlay
                     if (_imageRect != null)
@@ -486,23 +516,6 @@ class ImageCropperViewState extends State<ImageCropperView>
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
-  Rect getCropRect() {
-    final Rect? cropRect = _cropRectNotifier.value;
-    if (cropRect == null || _imageRect == null || _imageSize == null) {
-      return Rect.zero;
-    }
-
-    final double scaleX = _imageSize!.width / _imageRect!.width;
-    final double scaleY = _imageSize!.height / _imageRect!.height;
-
-    final double x = (cropRect.left - _imageRect!.left) * scaleX;
-    final double y = (cropRect.top - _imageRect!.top) * scaleY;
-    final double w = cropRect.width * scaleX;
-    final double h = cropRect.height * scaleY;
-
-    return Rect.fromLTWH(x, y, w, h);
-  }
-
   void setAspectRatio(CropperRatio ratio) {
     if (_currentAspectRatio != ratio) {
       // Logic update: We don't need full setState if only ratio changes,
@@ -518,24 +531,128 @@ class ImageCropperViewState extends State<ImageCropperView>
     }
   }
 
-  Future<Uint8List?> getCroppedImage() async {
-    if (_image == null) return null;
+  void setRotation(double angle) {
+    setState(() {
+      _rotation = angle;
+      if (_imageRect != null) {
+        _cropRectNotifier.value =
+            null; // Reset crop on rotation change to avoid OOB
+        // Re-layout will happen on build
+      }
+    });
+  }
 
-    final Rect cropRect = getCropRect();
+  void rotateRight() {
+    setState(() {
+      _rotation += math.pi / 2;
+      _cropRectNotifier.value = null;
+    });
+  }
+
+  void rotateLeft() {
+    setState(() {
+      _rotation -= math.pi / 2;
+      _cropRectNotifier.value = null;
+    });
+  }
+
+  void flipHorizontal() {
+    setState(() {
+      _flipX = !_flipX;
+      // Flip doesn't change bounds size, so crop rect technically fits,
+      // but the *content* changes. Usually fine to keep crop rect.
+    });
+  }
+
+  void flipVertical() {
+    setState(() {
+      _flipY = !_flipY;
+    });
+  }
+
+  Future<Uint8List?> getCroppedImage() async {
+    if (_image == null ||
+        _cropRectNotifier.value == null ||
+        _imageRect == null) {
+      return null;
+    }
+
+    final Rect cropRect = _cropRectNotifier.value!;
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
 
-    canvas.drawImageRect(
+    // cropRect is in Viewport coordinates.
+    // _imageRect is the Viewport rect of the TRANSFORMED image.
+    // We need to verify what we are cropping.
+    //
+    // The visual result on screen is:
+    // 1. Image is rendered at native size.
+    // 2. Transformed (Rotated/Flipped).
+    // 3. Scaled down to fit _imageRect.
+    //
+    // When capturing:
+    // We want an image of size `cropRect.width * scale` x `cropRect.height * scale`?
+    // Or just the cropRect size?
+    // Typically we want the high-res result.
+    //
+    // Scale factor: Native Image (rotated/flipped bounds) / _imageRect (viewport).
+    //
+    // Let's re-calculate the "Rotated/Flipped Native Size".
+    final double rads = _rotation;
+    final double cosVal = (math.cos(rads)).abs();
+    final double sinVal = (math.sin(rads)).abs();
+    final double width = _image!.width.toDouble();
+    final double height = _image!.height.toDouble();
+    final double rotatedNativeWidth = width * cosVal + height * sinVal;
+    final double rotatedNativeHeight = width * sinVal + height * cosVal;
+
+    final double scaleX = rotatedNativeWidth / _imageRect!.width;
+    final double scaleY = rotatedNativeHeight / _imageRect!.height;
+
+    // The crop rect in "Rotated Native Space"
+    final Rect nativeCropRect = Rect.fromLTWH(
+      (cropRect.left - _imageRect!.left) * scaleX,
+      (cropRect.top - _imageRect!.top) * scaleY,
+      cropRect.width * scaleX,
+      cropRect.height * scaleY,
+    );
+
+    // Target Canvas Size
+    final int targetWidth = nativeCropRect.width.toInt();
+    final int targetHeight = nativeCropRect.height.toInt();
+
+    // 1. Move the origin to the top-left of the crop area (effectively cropping)
+    canvas.translate(-nativeCropRect.left, -nativeCropRect.top);
+
+    // 2. We need to draw the original image such that it ends up
+    // rotated/flipped and aligned with `nativeCropRect` space.
+    //
+    // The "Rotated Native Space" origin (0,0) is the top-left of the bounding box
+    // of the rotated image.
+    // The original image needs to be positioned within this bounding box.
+    //
+    // Center of Rotated Native Space:
+    final Offset center = Offset(
+      rotatedNativeWidth / 2,
+      rotatedNativeHeight / 2,
+    );
+
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(_rotation);
+    canvas.scale(_flipX ? -1.0 : 1.0, _flipY ? -1.0 : 1.0);
+
+    // After transform, we are at the center of the image.
+    // Draw image centered there.
+    canvas.drawImage(
       _image!,
-      cropRect,
-      Rect.fromLTWH(0, 0, cropRect.width, cropRect.height),
-      Paint(),
+      Offset(-width / 2, -height / 2),
+      Paint()..filterQuality = FilterQuality.high,
     );
 
     final ui.Picture picture = recorder.endRecording();
     final ui.Image croppedImage = await picture.toImage(
-      cropRect.width.toInt(),
-      cropRect.height.toInt(),
+      targetWidth,
+      targetHeight,
     );
 
     final ByteData? byteData = await croppedImage.toByteData(

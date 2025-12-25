@@ -120,6 +120,32 @@ class _MyHomePageState extends State<MyHomePage> {
               }).toList(),
             ),
           ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                onPressed: () => _controller.rotateLeft(),
+                icon: const Icon(Icons.rotate_left),
+                tooltip: 'Rotate Left',
+              ),
+              IconButton(
+                onPressed: () => _controller.rotateRight(),
+                icon: const Icon(Icons.rotate_right),
+                tooltip: 'Rotate Right',
+              ),
+              IconButton(
+                onPressed: () => _controller.flipHorizontal(),
+                icon: const Icon(Icons.swap_horiz),
+                tooltip: 'Flip Horizontal',
+              ),
+              IconButton(
+                onPressed: () => _controller.flipVertical(),
+                icon: const Icon(Icons.swap_vert),
+                tooltip: 'Flip Vertical',
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
         ],
       ),
