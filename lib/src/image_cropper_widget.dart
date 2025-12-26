@@ -310,8 +310,9 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
                           // We need to find the scale factor to fit the rotated image into _imageRect
                           // and then apply that scale to the original (unrotated) image size.
 
-                          if (_imageSize == null)
+                          if (_imageSize == null) {
                             return const SizedBox.shrink();
+                          }
 
                           final double rads = _rotation;
                           final double cosVal = (math.cos(rads)).abs();
@@ -338,10 +339,12 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
                               alignment: Alignment.center,
                               transform: Matrix4.identity()
                                 ..rotateZ(_rotation)
-                                ..scale(
-                                  _flipX ? -1.0 : 1.0,
-                                  _flipY ? -1.0 : 1.0,
-                                  1.0,
+                                ..multiply(
+                                  Matrix4.diagonal3Values(
+                                    _flipX ? -1.0 : 1.0,
+                                    _flipY ? -1.0 : 1.0,
+                                    1.0,
+                                  ),
                                 ),
                               child: SizedBox(
                                 width: displayWidth,
