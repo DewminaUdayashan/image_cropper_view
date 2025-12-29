@@ -250,258 +250,247 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: widget.borderRadius,
-      child: ValueListenableBuilder<bool>(
-        valueListenable: _isLoadingNotifier,
-        builder: (context, isLoading, child) {
-          if (isLoading) {
-            return widget.loadingWidget ??
-                const Center(child: CircularProgressIndicator());
-          }
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              Size viewportSize;
-              if (!constraints.hasBoundedHeight) {
-                // Adaptive height: calculate based on image aspect ratio
-                if (_imageSize != null) {
-                  final double rads = _rotation;
-                  final double cosVal = (math.cos(rads)).abs();
-                  final double sinVal = (math.sin(rads)).abs();
-                  final double width = _imageSize!.width;
-                  final double height = _imageSize!.height;
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isLoadingNotifier,
+      builder: (context, isLoading, child) {
+        if (isLoading) {
+          return widget.loadingWidget ??
+              const Center(child: CircularProgressIndicator());
+        }
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            Size viewportSize;
+            if (!constraints.hasBoundedHeight) {
+              // Adaptive height: calculate based on image aspect ratio
+              if (_imageSize != null) {
+                final double rads = _rotation;
+                final double cosVal = (math.cos(rads)).abs();
+                final double sinVal = (math.sin(rads)).abs();
+                final double width = _imageSize!.width;
+                final double height = _imageSize!.height;
 
-                  final double rotatedWidth = width * cosVal + height * sinVal;
-                  final double rotatedHeight = width * sinVal + height * cosVal;
+                final double rotatedWidth = width * cosVal + height * sinVal;
+                final double rotatedHeight = width * sinVal + height * cosVal;
 
-                  final double aspectRatio = rotatedHeight == 0
-                      ? 1.0
-                      : rotatedWidth / rotatedHeight;
-                  double desiredHeight = constraints.maxWidth / aspectRatio;
+                final double aspectRatio = rotatedHeight == 0
+                    ? 1.0
+                    : rotatedWidth / rotatedHeight;
+                double desiredHeight = constraints.maxWidth / aspectRatio;
 
-                  if (desiredHeight.isInfinite || desiredHeight.isNaN) {
-                    desiredHeight = constraints.maxWidth;
-                  }
-                  viewportSize = Size(constraints.maxWidth, desiredHeight);
-                } else {
-                  viewportSize = Size(
-                    constraints.maxWidth,
-                    constraints.maxWidth,
-                  );
+                if (desiredHeight.isInfinite || desiredHeight.isNaN) {
+                  desiredHeight = constraints.maxWidth;
                 }
+                viewportSize = Size(constraints.maxWidth, desiredHeight);
               } else {
-                viewportSize = Size(
-                  constraints.maxWidth,
-                  constraints.maxHeight,
-                );
+                viewportSize = Size(constraints.maxWidth, constraints.maxWidth);
               }
+            } else {
+              viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+            }
 
-              // Ensure finite height
-              if (viewportSize.height.isInfinite || viewportSize.height.isNaN) {
-                viewportSize = Size(viewportSize.width, 300);
-              }
+            // Ensure finite height
+            if (viewportSize.height.isInfinite || viewportSize.height.isNaN) {
+              viewportSize = Size(viewportSize.width, 300);
+            }
 
-              // Calculate where the image sits
-              _imageRect = _calculateImageRect(viewportSize);
+            // Calculate where the image sits
+            _imageRect = _calculateImageRect(viewportSize);
 
-              // Initialize crop rect if needed
-              if (_cropRectNotifier.value == null && _imageRect != null) {
-                _initializeCropRect(_imageRect!);
-              }
+            // Initialize crop rect if needed
+            if (_cropRectNotifier.value == null && _imageRect != null) {
+              _initializeCropRect(_imageRect!);
+            }
 
-              return SizedBox(
-                width: viewportSize.width,
-                height: viewportSize.height,
-                child: Stack(
-                  children: [
-                    // The Background Image
-                    Positioned.fromRect(
-                      rect: _imageRect!,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          // _imageRect assumes the ROTATED size.
-                          // We need to find the scale factor to fit the rotated image into _imageRect
-                          // and then apply that scale to the original (unrotated) image size.
+            return SizedBox(
+              width: viewportSize.width,
+              height: viewportSize.height,
+              child: Stack(
+                children: [
+                  // The Background Image
+                  Positioned.fromRect(
+                    rect: _imageRect!,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // _imageRect assumes the ROTATED size.
+                        // We need to find the scale factor to fit the rotated image into _imageRect
+                        // and then apply that scale to the original (unrotated) image size.
 
-                          if (_imageSize == null) {
-                            return const SizedBox.shrink();
-                          }
+                        if (_imageSize == null) {
+                          return const SizedBox.shrink();
+                        }
 
-                          final double rads = _rotation;
-                          final double cosVal = (math.cos(rads)).abs();
-                          final double sinVal = (math.sin(rads)).abs();
+                        final double rads = _rotation;
+                        final double cosVal = (math.cos(rads)).abs();
+                        final double sinVal = (math.sin(rads)).abs();
 
-                          final double rotatedWidth =
-                              (_imageSize!.width * cosVal) +
-                              (_imageSize!.height * sinVal);
-                          // Scale factor between "Native Rotated Size" and "Displayed Rotated Size" (_imageRect)
-                          final double scale = _imageRect!.width / rotatedWidth;
+                        final double rotatedWidth =
+                            (_imageSize!.width * cosVal) +
+                            (_imageSize!.height * sinVal);
+                        // Scale factor between "Native Rotated Size" and "Displayed Rotated Size" (_imageRect)
+                        final double scale = _imageRect!.width / rotatedWidth;
 
-                          // The unrotated display size
-                          final double displayWidth = _imageSize!.width * scale;
-                          final double displayHeight =
-                              _imageSize!.height * scale;
+                        // The unrotated display size
+                        final double displayWidth = _imageSize!.width * scale;
+                        final double displayHeight = _imageSize!.height * scale;
 
-                          return OverflowBox(
-                            minWidth: 0,
-                            minHeight: 0,
-                            maxWidth: double.infinity,
-                            maxHeight: double.infinity,
+                        return OverflowBox(
+                          minWidth: 0,
+                          minHeight: 0,
+                          maxWidth: double.infinity,
+                          maxHeight: double.infinity,
+                          alignment: Alignment.center,
+                          child: Transform(
                             alignment: Alignment.center,
-                            child: Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..rotateZ(_rotation)
-                                ..multiply(
-                                  Matrix4.diagonal3Values(
-                                    _flipX ? -1.0 : 1.0,
-                                    _flipY ? -1.0 : 1.0,
-                                    1.0,
-                                  ),
+                            transform: Matrix4.identity()
+                              ..rotateZ(_rotation)
+                              ..multiply(
+                                Matrix4.diagonal3Values(
+                                  _flipX ? -1.0 : 1.0,
+                                  _flipY ? -1.0 : 1.0,
+                                  1.0,
                                 ),
-                              child: SizedBox(
-                                width: displayWidth,
-                                height: displayHeight,
+                              ),
+                            child: SizedBox(
+                              width: displayWidth,
+                              height: displayHeight,
+                              child: ClipRRect(
+                                borderRadius: widget.borderRadius,
                                 child: RawImage(
                                   image: _image,
                                   fit: BoxFit.fill,
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                    // The Overlay
-                    if (_imageRect != null)
-                      ValueListenableBuilder<Rect?>(
-                        valueListenable: _cropRectNotifier,
-                        builder: (context, cropRect, child) {
-                          if (cropRect == null) return const SizedBox.shrink();
-                          return CustomPaint(
-                            size: Size.infinite,
-                            painter: CropOverlayPainter(
-                              imageRect: _imageRect!,
-                              cropRect: _cropRectNotifier,
-                              style: widget.style,
-                              activeHandle: _activeHandleNotifier,
-                              scale: _scaleController,
+                  ),
+                  // The Overlay
+                  if (_imageRect != null)
+                    ValueListenableBuilder<Rect?>(
+                      valueListenable: _cropRectNotifier,
+                      builder: (context, cropRect, child) {
+                        if (cropRect == null) return const SizedBox.shrink();
+                        return CustomPaint(
+                          size: Size.infinite,
+                          painter: CropOverlayPainter(
+                            imageRect: _imageRect!,
+                            cropRect: _cropRectNotifier,
+                            style: widget.style,
+                            activeHandle: _activeHandleNotifier,
+                            scale: _scaleController,
+                          ),
+                        );
+                      },
+                    ),
+                  // Interaction Layer
+                  if (_imageRect != null)
+                    ValueListenableBuilder<Rect?>(
+                      valueListenable: _cropRectNotifier,
+                      builder: (context, cropRect, child) {
+                        if (cropRect == null) return const SizedBox.shrink();
+
+                        final double hitSize = widget.style.handlerSize * 1.5;
+
+                        // Discrete Touch Targets
+                        return Stack(
+                          children: [
+                            // 1. Move Target (Center)
+                            Positioned.fromRect(
+                              rect: cropRect,
+                              child: _ImmediateGestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onPanDown: (d) =>
+                                    _onPanDown(d, CropHandleSide.move),
+                                onPanStart: (d) =>
+                                    _onPanStart(d, CropHandleSide.move),
+                                onPanUpdate: _onPanUpdate,
+                                onPanEnd: _onPanEnd,
+                                onPanCancel: _onPanCancel,
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    // Interaction Layer
-                    if (_imageRect != null)
-                      ValueListenableBuilder<Rect?>(
-                        valueListenable: _cropRectNotifier,
-                        builder: (context, cropRect, child) {
-                          if (cropRect == null) return const SizedBox.shrink();
-
-                          final double hitSize = widget.style.handlerSize * 1.5;
-
-                          // Discrete Touch Targets
-                          return Stack(
-                            children: [
-                              // 1. Move Target (Center)
-                              Positioned.fromRect(
-                                rect: cropRect,
-                                child: _ImmediateGestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onPanDown: (d) =>
-                                      _onPanDown(d, CropHandleSide.move),
-                                  onPanStart: (d) =>
-                                      _onPanStart(d, CropHandleSide.move),
-                                  onPanUpdate: _onPanUpdate,
-                                  onPanEnd: _onPanEnd,
-                                  onPanCancel: _onPanCancel,
-                                ),
+                            // 2. Corner Handles
+                            // Top Left
+                            Positioned(
+                              left: cropRect.left - hitSize / 2,
+                              top: cropRect.top - hitSize / 2,
+                              width: hitSize,
+                              height: hitSize,
+                              child: _ImmediateGestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onPanDown: (d) =>
+                                    _onPanDown(d, CropHandleSide.topLeft),
+                                onPanStart: (d) =>
+                                    _onPanStart(d, CropHandleSide.topLeft),
+                                onPanUpdate: _onPanUpdate,
+                                onPanEnd: _onPanEnd,
+                                onPanCancel: _onPanCancel,
                               ),
-                              // 2. Corner Handles
-                              // Top Left
-                              Positioned(
-                                left: cropRect.left - hitSize / 2,
-                                top: cropRect.top - hitSize / 2,
-                                width: hitSize,
-                                height: hitSize,
-                                child: _ImmediateGestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onPanDown: (d) =>
-                                      _onPanDown(d, CropHandleSide.topLeft),
-                                  onPanStart: (d) =>
-                                      _onPanStart(d, CropHandleSide.topLeft),
-                                  onPanUpdate: _onPanUpdate,
-                                  onPanEnd: _onPanEnd,
-                                  onPanCancel: _onPanCancel,
-                                ),
+                            ),
+                            // Top Right
+                            Positioned(
+                              left: cropRect.right - hitSize / 2,
+                              top: cropRect.top - hitSize / 2,
+                              width: hitSize,
+                              height: hitSize,
+                              child: _ImmediateGestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onPanDown: (d) =>
+                                    _onPanDown(d, CropHandleSide.topRight),
+                                onPanStart: (d) =>
+                                    _onPanStart(d, CropHandleSide.topRight),
+                                onPanUpdate: _onPanUpdate,
+                                onPanEnd: _onPanEnd,
+                                onPanCancel: _onPanCancel,
                               ),
-                              // Top Right
-                              Positioned(
-                                left: cropRect.right - hitSize / 2,
-                                top: cropRect.top - hitSize / 2,
-                                width: hitSize,
-                                height: hitSize,
-                                child: _ImmediateGestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onPanDown: (d) =>
-                                      _onPanDown(d, CropHandleSide.topRight),
-                                  onPanStart: (d) =>
-                                      _onPanStart(d, CropHandleSide.topRight),
-                                  onPanUpdate: _onPanUpdate,
-                                  onPanEnd: _onPanEnd,
-                                  onPanCancel: _onPanCancel,
-                                ),
+                            ),
+                            // Bottom Left
+                            Positioned(
+                              left: cropRect.left - hitSize / 2,
+                              top: cropRect.bottom - hitSize / 2,
+                              width: hitSize,
+                              height: hitSize,
+                              child: _ImmediateGestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onPanDown: (d) =>
+                                    _onPanDown(d, CropHandleSide.bottomLeft),
+                                onPanStart: (d) =>
+                                    _onPanStart(d, CropHandleSide.bottomLeft),
+                                onPanUpdate: _onPanUpdate,
+                                onPanEnd: _onPanEnd,
+                                onPanCancel: _onPanCancel,
                               ),
-                              // Bottom Left
-                              Positioned(
-                                left: cropRect.left - hitSize / 2,
-                                top: cropRect.bottom - hitSize / 2,
-                                width: hitSize,
-                                height: hitSize,
-                                child: _ImmediateGestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onPanDown: (d) =>
-                                      _onPanDown(d, CropHandleSide.bottomLeft),
-                                  onPanStart: (d) =>
-                                      _onPanStart(d, CropHandleSide.bottomLeft),
-                                  onPanUpdate: _onPanUpdate,
-                                  onPanEnd: _onPanEnd,
-                                  onPanCancel: _onPanCancel,
-                                ),
+                            ),
+                            // Bottom Right
+                            Positioned(
+                              left: cropRect.right - hitSize / 2,
+                              top: cropRect.bottom - hitSize / 2,
+                              width: hitSize,
+                              height: hitSize,
+                              child: _ImmediateGestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onPanDown: (d) =>
+                                    _onPanDown(d, CropHandleSide.bottomRight),
+                                onPanStart: (d) =>
+                                    _onPanStart(d, CropHandleSide.bottomRight),
+                                onPanUpdate: _onPanUpdate,
+                                onPanEnd: _onPanEnd,
+                                onPanCancel: _onPanCancel,
                               ),
-                              // Bottom Right
-                              Positioned(
-                                left: cropRect.right - hitSize / 2,
-                                top: cropRect.bottom - hitSize / 2,
-                                width: hitSize,
-                                height: hitSize,
-                                child: _ImmediateGestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onPanDown: (d) =>
-                                      _onPanDown(d, CropHandleSide.bottomRight),
-                                  onPanStart: (d) => _onPanStart(
-                                    d,
-                                    CropHandleSide.bottomRight,
-                                  ),
-                                  onPanUpdate: _onPanUpdate,
-                                  onPanEnd: _onPanEnd,
-                                  onPanCancel: _onPanCancel,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
-  // --- Interaction Logic ---
-
   // --- Interaction Logic ---
 
   Offset? startTouchPoint;

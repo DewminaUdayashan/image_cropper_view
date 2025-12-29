@@ -32,6 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // 1. Initialize the controller to manage the cropper state
   final _controller = ImageCropperController();
   CropperRatio? _aspectRatio;
+  // ignore: unused_field
   Uint8List? _croppedImage;
   HandleType _handleType = HandleType.corner;
 
@@ -63,7 +64,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
@@ -77,15 +77,15 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               ImageCropperWidget(
                 // 3. Configure the view
-                borderRadius: BorderRadius.circular(16.0),
+                borderRadius: BorderRadius.circular(8.0),
                 controller: _controller,
                 image: const AssetImage('assets/sample-image.png'),
                 aspectRatio: _aspectRatio,
                 // 4. Customize the look and feel
                 style: CropperStyle(
                   overlayColor: Colors.black54,
-                  borderColor: Colors.white,
-                  handlerColor: Colors.white,
+                  borderColor: Colors.orange,
+                  handlerColor: Colors.deepOrange,
                   borderWidth: 2.0,
                   handlerSize: 30,
                   handleType: _handleType,
