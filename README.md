@@ -129,6 +129,22 @@ Available presets:
 - `CropperRatio.ratio9_16`
 - `CropperRatio.custom` (Free-form)
 
+### CropperStyle
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `overlayColor` | `Color` | `black54` | The color of the overlay mask outside the crop area. |
+| `borderColor` | `Color` | `Colors.white` | The color of the crop border. |
+| `borderWidth` | `double` | `2.0` | The width of the crop border. |
+| `handlerColor` | `Color` | `Colors.white` | The color of the crop handles. |
+| `handlerSize` | `double` | `12.0` | The size of the crop handles. |
+| `handleType` | `HandleType` | `.circle` | Shape of handles (`.circle` or `.corner`). |
+| `handlerThickness` | `double` | `2.0` | Thickness of lines for corner handles. |
+| `cropBorderRadius` | `double` | `0.0` | Radius for rounded crop corners. |
+| `overlayPadding` | `double` | `0.0` | Visual gap between the image boundary and the crop border. |
+| `enableFeedback` | `bool` | `true` | Whether to provide haptic feedback. |
+| `enableScaleAnimation`| `bool` | `true` | Whether handles animate scale on touch. |
+
 ## License
 
 This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.

@@ -53,8 +53,9 @@ class CropOverlayPainter extends CustomPainter {
     final Rect rect = cropRect.value!;
 
     // 1. Draw Update (Semi-transparent background everywhere EXCEPT the crop rect)
-    final Path backgroundPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    // FIX: Only draw overlay on top of the image (imageRect), not the full canvas (size).
+    // This leaves the padding areas transparent/white.
+    final Path backgroundPath = Path()..addRect(imageRect);
 
     // Create RRect from cropRect using style.cropBorderRadius
     final RRect cropRRect = RRect.fromRectAndRadius(

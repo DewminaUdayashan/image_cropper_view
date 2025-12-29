@@ -48,6 +48,9 @@ class CropperStyle {
   /// The scale factor for the active handle during interaction.
   final double activeHandlerScale;
 
+  /// Padding around the crop overlay (gap between image and border).
+  final double overlayPadding;
+
   /// Creates a [CropperStyle] with customizable visual properties.
   const CropperStyle({
     this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
@@ -61,5 +64,6 @@ class CropperStyle {
     this.enableFeedback = true,
     this.enableScaleAnimation = true,
     this.activeHandlerScale = 1.3,
+    this.overlayPadding = 2.0,
   });
 }
