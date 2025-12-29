@@ -196,8 +196,19 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
 
     final Size inputSize = Size(rotatedWidth, rotatedHeight);
 
+    final double safeArea = widget.style.handlerSize / 2;
+    // Deflate the viewport by standard padding + overlay padding + safe area for handles
+    final double totalPadding = widget.style.overlayPadding + safeArea;
+
     // Apply standard BoxFit logic
-    final FittedSizes sizes = applyBoxFit(widget.fit, inputSize, viewportSize);
+    final FittedSizes sizes = applyBoxFit(
+      widget.fit,
+      inputSize,
+      Size(
+        viewportSize.width - totalPadding * 2,
+        viewportSize.height - totalPadding * 2,
+      ),
+    );
     final Size destinationSize = sizes.destination;
 
     final double dx = (viewportSize.width - destinationSize.width) / 2;
@@ -225,14 +236,16 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
       }
     }
 
-    // Default to slightly smaller than full image to show it's separate
-    width *= 0.8;
-    height *= 0.8;
-
+    // Default: Start centered with calculated dimensions
     final double dx = imageRect.left + (imageRect.width - width) / 2;
     final double dy = imageRect.top + (imageRect.height - height) / 2;
 
-    _cropRectNotifier.value = Rect.fromLTWH(dx, dy, width, height);
+    _cropRectNotifier.value = Rect.fromLTWH(
+      dx,
+      dy,
+      width,
+      height,
+    ).inflate(widget.style.overlayPadding);
   }
 
   @override
@@ -532,24 +545,27 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
     Rect newRect = startCropRect!;
     final CropHandleSide handle = _activeHandleNotifier.value!;
 
+    // Allow dragging into the padding area
+    final Rect bounds = _imageRect!.inflate(widget.style.overlayPadding);
+
     if (handle == CropHandleSide.move) {
       newRect = newRect.shift(delta);
     } else {
-      newRect = resizeRect(newRect, handle, delta, _imageRect!);
+      newRect = resizeRect(newRect, handle, delta, bounds);
     }
 
     if (handle == CropHandleSide.move) {
-      if (newRect.left < _imageRect!.left) {
-        newRect = newRect.shift(Offset(_imageRect!.left - newRect.left, 0));
+      if (newRect.left < bounds.left) {
+        newRect = newRect.shift(Offset(bounds.left - newRect.left, 0));
       }
-      if (newRect.top < _imageRect!.top) {
-        newRect = newRect.shift(Offset(0, _imageRect!.top - newRect.top));
+      if (newRect.top < bounds.top) {
+        newRect = newRect.shift(Offset(0, bounds.top - newRect.top));
       }
-      if (newRect.right > _imageRect!.right) {
-        newRect = newRect.shift(Offset(_imageRect!.right - newRect.right, 0));
+      if (newRect.right > bounds.right) {
+        newRect = newRect.shift(Offset(bounds.right - newRect.right, 0));
       }
-      if (newRect.bottom > _imageRect!.bottom) {
-        newRect = newRect.shift(Offset(0, _imageRect!.bottom - newRect.bottom));
+      if (newRect.bottom > bounds.bottom) {
+        newRect = newRect.shift(Offset(0, bounds.bottom - newRect.bottom));
       }
     }
 
@@ -781,7 +797,19 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
       return null;
     }
 
-    final Rect cropRect = _cropRectNotifier.value!;
+    // Clamp the crop rect to the image rect to ensure we don't try to crop outside.
+    // The UI allows the rect to be larger (for better handle visibility),
+    // but the actual image content is bound by _imageRect.
+    //
+    // FIX: We must first remove the visual overlay padding before clamping,
+    // otherwise we might simply intersect the "padded" rect which could be slightly off-ratio
+    // if the padding pushes it out of bounds asymmetrically.
+    // We want the "Inner Content" rect.
+    final Rect contentRect = _cropRectNotifier.value!.deflate(
+      widget.style.overlayPadding,
+    );
+
+    final Rect cropRect = contentRect.intersect(_imageRect!);
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(recorder);
 

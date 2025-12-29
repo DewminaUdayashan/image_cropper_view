@@ -78,11 +78,10 @@ packages:
   image_cropper_widget:
     dependency: "direct main"
     description:
-      name: image_cropper_widget
-      sha256: "84d1471a893387eeff5dc013558316ea1b42cad5c0b32fa962e37488acd667b9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.2"
+      path: ".."
+      relative: true
+    source: path
+    version: "1.0.3"
   leak_tracker:
     dependency: transitive
     description:

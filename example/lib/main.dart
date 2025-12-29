@@ -63,6 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
@@ -70,11 +71,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ImageCropperWidget(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              ImageCropperWidget(
                 // 3. Configure the view
                 borderRadius: BorderRadius.circular(16.0),
                 controller: _controller,
@@ -85,18 +86,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   overlayColor: Colors.black54,
                   borderColor: Colors.white,
                   handlerColor: Colors.white,
-                  borderWidth: 1.0,
+                  borderWidth: 2.0,
                   handlerSize: 30,
                   handleType: _handleType,
                   handlerThickness: 6,
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Wrap(
+              SizedBox(height: 16),
+              Wrap(
                 runSpacing: 6,
                 spacing: 6,
                 children: CropperRatio.values.map((ratio) {
@@ -111,61 +109,61 @@ class _MyHomePageState extends State<MyHomePage> {
                   );
                 }).toList(),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  onPressed: () => _controller.rotateLeft(),
-                  icon: const Icon(Icons.rotate_left),
-                  tooltip: 'Rotate Left',
-                ),
-                IconButton(
-                  onPressed: () => _controller.rotateRight(),
-                  icon: const Icon(Icons.rotate_right),
-                  tooltip: 'Rotate Right',
-                ),
-                IconButton(
-                  onPressed: () => _controller.flipHorizontal(),
-                  icon: const Icon(Icons.swap_horiz),
-                  tooltip: 'Flip Horizontal',
-                ),
-                IconButton(
-                  onPressed: () => _controller.flipVertical(),
-                  icon: const Icon(Icons.swap_vert),
-                  tooltip: 'Flip Vertical',
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  const SizedBox(width: 20),
-                  const Text('Handle Type: '),
-                  const SizedBox(width: 10),
-                  DropdownButton<HandleType>(
-                    value: _handleType,
-                    items: HandleType.values.map((type) {
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(type.name.toUpperCase()),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _handleType = value;
-                        });
-                      }
-                    },
+                  IconButton(
+                    onPressed: () => _controller.rotateLeft(),
+                    icon: const Icon(Icons.rotate_left),
+                    tooltip: 'Rotate Left',
+                  ),
+                  IconButton(
+                    onPressed: () => _controller.rotateRight(),
+                    icon: const Icon(Icons.rotate_right),
+                    tooltip: 'Rotate Right',
+                  ),
+                  IconButton(
+                    onPressed: () => _controller.flipHorizontal(),
+                    icon: const Icon(Icons.swap_horiz),
+                    tooltip: 'Flip Horizontal',
+                  ),
+                  IconButton(
+                    onPressed: () => _controller.flipVertical(),
+                    icon: const Icon(Icons.swap_vert),
+                    tooltip: 'Flip Vertical',
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text('Handle Type: '),
+                    const SizedBox(width: 10),
+                    DropdownButton<HandleType>(
+                      value: _handleType,
+                      items: HandleType.values.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type.name.toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _handleType = value;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
