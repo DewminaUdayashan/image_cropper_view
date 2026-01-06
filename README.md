@@ -1,14 +1,16 @@
 # Image Cropper Widget
 
-A customizable, pure Dart image cropping widget for Flutter. Easily crop images with preset or custom aspect ratios, rotation, flipping, and advanced UI customization.
+A customizable, pure Dart image cropping widget for Flutter. Easily crop images with preset or custom aspect ratios, rotation, flipping, and advanced UI customization including **Grid Overlays** and **Oval/Circle Cropping**.
 
 <img src="https://github.com/DewminaUdayashan/image_cropper_view/raw/main/doc/demo.gif" width="250" alt="Demo GIF">
 
 ## Features
 
 - **Flexible Cropping**: Supports both free-form and preset aspect ratios.
+- **Crop Shapes**: Choose between **Rectangle** or **Oval/Circle** crop areas.
+- **Grid Overlay**: Built-in Rule of Thirds or custom grid divisions (3x3, 4x4, etc.).
 - **Transformations**: Rotate (90° steps or custom angles) and flip (horizontal/vertical) images.
-- **Customizable UI**: Fully style the overlay, borders, and crop handles to match your app's design.
+- **Customizable UI**: Fully style the overlay, borders, drag handles (corner/circle), and colors.
 - **High Performance**: Built with standard Flutter widgets and custom painters for smooth interaction.
 - **No Native Dependencies**: Pure Dart implementation, ensuring compatibility across all platforms.
 
@@ -18,7 +20,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  image_cropper_widget: ^1.0.2
+  image_cropper_widget: ^1.0.6
 ```
 
 ## Getting Started
@@ -39,16 +41,24 @@ class MyCropScreen extends StatefulWidget {
 
 class _MyCropScreenState extends State<MyCropScreen> {
   final _controller = ImageCropperController();
-
+  
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ImageCropperWidget(
+        Expanded(
+          child: ImageCropperWidget(
             image: AssetImage('assets/my_image.png'),
             controller: _controller,
             aspectRatio: CropperRatio.ratio4_3, // Optional: Force 4:3
-        )
+            style: CropperStyle(
+               corner,
+              cropShape: CropShape.oval, // Enable Oval cropping
+              showGrid: true,
+              gridDivisions: 3, // Rule of Thirds
+            ),
+          ),
+        ),
         ElevatedButton(
           onPressed: () async {
             final Uint8List? croppedBytes = await _controller.crop();
@@ -87,20 +97,33 @@ _controller.setAspectRatio(CropperRatio.custom); // Free-form
 
 ### CropperStyle
 
-Customize the look and feel using `CropperStyle`:
+Customize the look and feel using `CropperStyle`. The `image_cropper_view` allows you to customize almost every visual aspect:
 
 ```dart
 ImageCropperWidget(
   image: ...,
   style: CropperStyle(
+    // Overlay
     overlayColor: Colors.black.withOpacity(0.7),
+    overlayPadding: 20.0, // Gap between image and border
+    
+    // Border
     borderColor: Colors.blueAccent,
     borderWidth: 2.0,
+    cropBorderRadius: 12.0, // Rounded corners for rectangle
+    
+    // Handles
     handlerColor: Colors.blue,
     handlerSize: 14.0,
     handleType: HandleType.corner, // .circle or .corner
-    handlerThickness: 4.0, // Only for corner handles
-    cropBorderRadius: 0.0, // Sharp corners
+    
+    // Grid
+    showGrid: true,
+    gridLineColor: Colors.white54,
+    gridDivisions: 3, // 3x3 Grid
+    
+    // Shape
+    cropShape: CropShape.rectangle, // .rectangle or .oval
   ),
 )
 ```
@@ -140,10 +163,15 @@ Available presets:
 | `handlerSize` | `double` | `12.0` | The size of the crop handles. |
 | `handleType` | `HandleType` | `.circle` | Shape of handles (`.circle` or `.corner`). |
 | `handlerThickness` | `double` | `2.0` | Thickness of lines for corner handles. |
-| `cropBorderRadius` | `double` | `0.0` | Radius for rounded crop corners. |
-| `overlayPadding` | `double` | `0.0` | Visual gap between the image boundary and the crop border. |
+| `cropBorderRadius` | `double` | `0.0` | Radius for rounded crop corners (Rectangle only). |
+| `overlayPadding` | `double` | `2.0` | Visual gap between the image boundary and the crop border. |
 | `enableFeedback` | `bool` | `true` | Whether to provide haptic feedback. |
 | `enableScaleAnimation`| `bool` | `true` | Whether handles animate scale on touch. |
+| `showGrid` | `bool` | `true` | Whether to show the grid overlay. |
+| `gridLineColor` | `Color` | `white54` | Color of the grid lines. |
+| `gridLineWidth` | `double` | `1.0` | Width of the grid lines. |
+| `gridDivisions` | `int` | `3` | Number of divisions in the grid (e.g., 3 for 3x3). |
+| `cropShape` | `CropShape` | `.rectangle` | Shape of the crop area (`.rectangle` or `.oval`). |
 
 ## License
 
