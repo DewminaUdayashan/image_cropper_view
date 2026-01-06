@@ -60,7 +60,8 @@ class CropperStyle {
   /// The width of the grid lines.
   final double gridLineWidth;
 
-  /// The number of divisions in the grid (e.g., 3 for 3x3).
+  /// The number of divisions in the grid (e.g., 3 for a 3x3 grid).
+  /// Must be at least 2.
   final int gridDivisions;
 
   /// Creates a [CropperStyle] with customizable visual properties.
