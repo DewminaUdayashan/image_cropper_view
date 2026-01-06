@@ -11,41 +11,56 @@ import 'cropper_ratio.dart';
 import 'cropper_style.dart';
 import 'image_cropper_controller.dart';
 
-/// A widget that provides an image cropping interface.
+/// A widget that provides an interactive image cropping interface.
 ///
-/// This widget displays an image and an overlay that allows the user to select
-/// a rectangular crop area. It supports features like:
-/// * Constrained aspect ratios (e.g., 1:1, 16:9).
-/// * Free-form cropping.
-/// * Rotation (90-degree steps or custom angles).
-/// * Flipping (horizontal/vertical).
-/// * Customizable UI styles (overlay color, handle shapes, etc.).
+/// This widget displays an image with an overlay that allows users to select
+/// a specific rectangular or oval area to crop. It supports:
+/// * **Aspect Ratings**: Constrain the crop area to specific ratios (e.g., 1:1, 16:9).
+/// * **Free-form Cropping**: specific ratios can be disabled for free resize.
+/// * **Transformation**: Rotate the image (90-degree steps or custom angles) and flip horizontally/vertically.
+/// * **Customization**: Use [CropperStyle] to change colors, handle shapes (circle/corner), grid visibility, and more.
+/// * **Programmatic Control**: Use [ImageCropperController] to trigger crops, rotation, and other actions from outside the widget.
 class ImageCropperWidget extends StatefulWidget {
-  /// The image to be cropped.
+  /// The image to be displayed and cropped.
+  ///
+  /// This can be any [ImageProvider], such as [AssetImage], [NetworkImage], or [FileImage].
   final ImageProvider image;
 
   /// The initial aspect ratio for the crop area.
   ///
-  /// If null, it defaults to a free-form crop (or the user customizes it).
+  /// * If a specific ratio is provided (e.g. [CropperRatio.ratio16_9]), the crop rect will be constrained to that ratio.
+  /// * If [CropperRatio.custom] is provided (or null), the crop rect will be free-form.
+  ///
+  /// Defaults to null.
   final CropperRatio? aspectRatio;
 
   /// The visual style configuration for the cropper overlay.
+  ///
+  /// Allows customizing colors, border width, handle size, grid lines, and crop shape (rectangle vs oval).
+  ///
+  /// Defaults to [CropperStyle()].
   final CropperStyle style;
 
-  /// The border radius of the widget itself (clipping the view).
+  /// The border radius of the widget container itself.
+  ///
+  /// This clips the *view* of the cropper, not the actual crop result. Use this to make the widget look rounded on screen.
   final BorderRadiusGeometry borderRadius;
 
-  /// A widget to display while the image is loading.
+  /// A widget to display while the image is loading and decoding.
   ///
-  /// If null, a [CircularProgressIndicator] is shown.
+  /// Defaults to a centered [CircularProgressIndicator] if null.
   final Widget? loadingWidget;
 
   /// How the image should be inscribed into the available space.
   ///
-  /// Defaults to [BoxFit.contain].
+  /// * [BoxFit.contain] (default): The entire image will be visible, potentially with empty space around it.
+  /// * [BoxFit.cover]: The image will zoom to fill the space, potentially clipping parts of it from view.
   final BoxFit fit;
 
   /// An optional controller to manipulate the cropper state programmatically.
+  ///
+  /// Pass an instance of [ImageCropperController] to trigger actions like [ImageCropperController.crop],
+  /// [ImageCropperController.rotateRight], etc., from your UI buttons.
   final ImageCropperController? controller;
 
   /// Creates an [ImageCropperWidget].
