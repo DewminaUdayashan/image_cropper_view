@@ -57,8 +57,11 @@ class CropperStyle {
   /// The color of the grid lines.
   final Color gridLineColor;
 
-  /// The thickness of the grid lines.
-  final double gridLineThickness;
+  /// The width of the grid lines.
+  final double gridLineWidth;
+
+  /// The number of divisions in the grid (e.g., 3 for 3x3).
+  final int gridDivisions;
 
   /// Creates a [CropperStyle] with customizable visual properties.
   const CropperStyle({
@@ -76,6 +79,7 @@ class CropperStyle {
     this.overlayPadding = 2.0,
     this.showGrid = true,
     this.gridLineColor = const Color(0x8AFFFFFF), // Colors.white54
-    this.gridLineThickness = 1.0,
-  });
+    this.gridLineWidth = 1.0,
+    this.gridDivisions = 3,
+  }) : assert(gridDivisions >= 2, 'gridDivisions must be at least 2');
 }

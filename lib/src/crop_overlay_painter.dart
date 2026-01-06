@@ -74,12 +74,12 @@ class CropOverlayPainter extends CustomPainter {
 
     canvas.drawPath(overlayPath, Paint()..color = style.overlayColor);
 
-    // 2. Draw Grid (Rule of Thirds)
+    // 2. Draw Grid
     if (style.showGrid) {
       final Paint gridPaint = Paint()
         ..color = style.gridLineColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = style.gridLineThickness;
+        ..strokeWidth = style.gridLineWidth;
 
       // Clip to the rounded crop area
       canvas.save();
@@ -88,17 +88,17 @@ class CropOverlayPainter extends CustomPainter {
       final double width = rect.width;
       final double height = rect.height;
 
-      // Vertical lines
-      final double x1 = rect.left + width / 3;
-      final double x2 = rect.left + 2 * width / 3;
-      canvas.drawLine(Offset(x1, rect.top), Offset(x1, rect.bottom), gridPaint);
-      canvas.drawLine(Offset(x2, rect.top), Offset(x2, rect.bottom), gridPaint);
+      // Draw vertical and horizontal lines
+      // We need (gridDivisions - 1) lines to create (gridDivisions) sections
+      for (int i = 1; i < style.gridDivisions; i++) {
+        // Vertical line
+        final double x = rect.left + (width / style.gridDivisions) * i;
+        canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), gridPaint);
 
-      // Horizontal lines
-      final double y1 = rect.top + height / 3;
-      final double y2 = rect.top + 2 * height / 3;
-      canvas.drawLine(Offset(rect.left, y1), Offset(rect.right, y1), gridPaint);
-      canvas.drawLine(Offset(rect.left, y2), Offset(rect.right, y2), gridPaint);
+        // Horizontal line
+        final double y = rect.top + (height / style.gridDivisions) * i;
+        canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), gridPaint);
+      }
 
       canvas.restore();
     }
