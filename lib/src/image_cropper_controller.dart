@@ -15,24 +15,31 @@ class ImageCropperController {
   }
 
   /// Detaches the controller from the [ImageCropperWidget] state.
+  ///
+  /// This is called when the widget is disposed.
   void detach() {
     _state = null;
   }
 
   /// Captures the current cropped image.
   ///
-  /// Returns the cropped image data as a [Uint8List] formatted as PNG,
-  /// or `null` if the image is not loaded or cropping fails.
+  /// * Returns: The cropped image data as a [Uint8List] formatted as PNG.
+  ///   If [CropShape.oval] is used, the pixels outside the oval will be transparent.
+  /// * Returns `null` if the image is not loaded or cropping fails.
   Future<Uint8List?> crop() {
     return _state?.getCroppedImage() ?? Future.value(null);
   }
 
-  /// Sets a new aspect ratio for cropping.
+  /// Sets a new [CropperRatio] for cropping.
+  ///
+  /// This will reset the crop rect to the new ratio, centered on the image.
   void setAspectRatio(CropperRatio ratio) {
     _state?.setAspectRatio(ratio);
   }
 
   /// Rotates the image by [angle] radians.
+  ///
+  /// This resets the crop rect to avoid out-of-bounds issues.
   void setRotation(double angle) {
     _state?.setRotation(angle);
   }
@@ -48,6 +55,8 @@ class ImageCropperController {
   }
 
   /// Flips the image horizontally (scales X by -1).
+  ///
+  /// Main crop area is preserved relative to the image bounds.
   void flipHorizontal() {
     _state?.flipHorizontal();
   }

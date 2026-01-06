@@ -9,11 +9,26 @@ enum HandleType {
   corner,
 }
 
-/// Defines the visual usage style and configuration for the [ImageCropperView].
+/// Specifies the shape of the crop area.
+enum CropShape {
+  /// Rectangular crop area.
+  rectangle,
+
+  /// Oval/Circular crop area.
+  ///
+  /// Use this for profile pictures or other circular assets.
+  /// The output image will have transparent pixels outside the oval.
+  oval,
+}
+
+/// Defines the visual style and configuration for the [ImageCropperView].
+///
+/// Use this class to customize the look and feel of the cropper, including
+/// colors, handle shapes, grid overlays, and crop shapes.
 class CropperStyle {
   /// The color of the overlay mask outside the crop area.
   ///
-  /// Defaults to a semi-transparent black.
+  /// Defaults to a semi-transparent black `Color.fromARGB(150, 0, 0, 0)`.
   final Color overlayColor;
 
   /// The color of the border around the crop area.
@@ -22,13 +37,16 @@ class CropperStyle {
   /// The width of the border around the crop area.
   final double borderWidth;
 
-  /// The color of the crop handles.
+  /// The color of the crop handles (corners or circles).
   final Color handlerColor;
 
   /// The size (diameter or length) of the crop handles.
   final double handlerSize;
 
-  /// The type of handles to display (circle or corner).
+  /// The type of handles to display.
+  ///
+  /// * [HandleType.circle]: Circular dots at the corners.
+  /// * [HandleType.corner]: L-shaped brackets at the corners.
   final HandleType handleType;
 
   /// The thickness of the crop handles (only applicable for [HandleType.corner]).
@@ -36,33 +54,48 @@ class CropperStyle {
 
   /// The border radius of the crop area itself.
   ///
-  /// This creates a rounded crop rectangle.
+  /// This creates a rounded crop rectangle. It is ignored if [cropShape] is [CropShape.oval].
   final double cropBorderRadius;
 
-  /// Whether to provide haptic feedback during interaction.
+  /// Whether to provide haptic feedback (vibration) during interaction.
   final bool enableFeedback;
 
   /// Whether to animate scale on interaction (zoom-in effect on handles).
   final bool enableScaleAnimation;
 
   /// The scale factor for the active handle during interaction.
+  ///
+  /// Defaults to 1.3 (30% larger).
   final double activeHandlerScale;
 
   /// Padding around the crop overlay (gap between image and border).
+  ///
+  /// This ensures that handles are always visible and touchable, even when cropping
+  /// to the very edge of the image.
   final double overlayPadding;
 
-  /// Whether to show a grid overlay (Rule of Thirds when [gridDivisions] is 3).
+  /// Whether to show a grid overlay (e.g., Rule of Thirds).
+  ///
+  /// Defaults to `true`.
   final bool showGrid;
 
   /// The color of the grid lines.
+  ///
+  /// Defaults to semi-transparent white.
   final Color gridLineColor;
 
   /// The width of the grid lines.
   final double gridLineWidth;
 
   /// The number of divisions in the grid (e.g., 3 for a 3x3 grid).
-  /// Must be at least 2.
+  ///
+  /// Must be at least 2. Defaults to 3 (Rule of Thirds).
   final int gridDivisions;
+
+  /// The shape of the crop area (rectangle/oval).
+  ///
+  /// Defaults to [CropShape.rectangle].
+  final CropShape cropShape;
 
   /// Creates a [CropperStyle] with customizable visual properties.
   const CropperStyle({
@@ -82,5 +115,6 @@ class CropperStyle {
     this.gridLineColor = const Color(0x8AFFFFFF), // Colors.white54
     this.gridLineWidth = 1.0,
     this.gridDivisions = 3,
+    this.cropShape = CropShape.rectangle,
   }) : assert(gridDivisions >= 2, 'gridDivisions must be at least 2');
 }

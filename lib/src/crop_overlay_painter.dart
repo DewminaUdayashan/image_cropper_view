@@ -63,7 +63,13 @@ class CropOverlayPainter extends CustomPainter {
       Radius.circular(style.cropBorderRadius),
     );
 
-    final Path cropPath = Path()..addRRect(cropRRect);
+    // Create crop path based on shape
+    final Path cropPath = Path();
+    if (style.cropShape == CropShape.oval) {
+      cropPath.addOval(rect);
+    } else {
+      cropPath.addRRect(cropRRect);
+    }
 
     // Reverse difference to cut out the hole
     final Path overlayPath = Path.combine(
@@ -81,9 +87,14 @@ class CropOverlayPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = style.gridLineWidth;
 
-      // Clip to the rounded crop area
+      // Clip to the crop area
       canvas.save();
-      canvas.clipRRect(cropRRect);
+      if (style.cropShape == CropShape.oval) {
+        // Create an oval path for clipping
+        canvas.clipPath(Path()..addOval(rect));
+      } else {
+        canvas.clipRRect(cropRRect);
+      }
 
       final double width = rect.width;
       final double height = rect.height;
@@ -109,7 +120,11 @@ class CropOverlayPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = style.borderWidth;
 
-    canvas.drawRRect(cropRRect, borderPaint);
+    if (style.cropShape == CropShape.oval) {
+      canvas.drawOval(rect, borderPaint);
+    } else {
+      canvas.drawRRect(cropRRect, borderPaint);
+    }
 
     // 3. Draw Handles (Corners)
     final Paint handlePaint = Paint()
