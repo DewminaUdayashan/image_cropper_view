@@ -51,6 +51,19 @@ class CropperStyle {
   /// Padding around the crop overlay (gap between image and border).
   final double overlayPadding;
 
+  /// Whether to show a grid overlay (Rule of Thirds when [gridDivisions] is 3).
+  final bool showGrid;
+
+  /// The color of the grid lines.
+  final Color gridLineColor;
+
+  /// The width of the grid lines.
+  final double gridLineWidth;
+
+  /// The number of divisions in the grid (e.g., 3 for a 3x3 grid).
+  /// Must be at least 2.
+  final int gridDivisions;
+
   /// Creates a [CropperStyle] with customizable visual properties.
   const CropperStyle({
     this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
@@ -65,5 +78,9 @@ class CropperStyle {
     this.enableScaleAnimation = true,
     this.activeHandlerScale = 1.3,
     this.overlayPadding = 2.0,
-  });
+    this.showGrid = true,
+    this.gridLineColor = const Color(0x8AFFFFFF), // Colors.white54
+    this.gridLineWidth = 1.0,
+    this.gridDivisions = 3,
+  }) : assert(gridDivisions >= 2, 'gridDivisions must be at least 2');
 }

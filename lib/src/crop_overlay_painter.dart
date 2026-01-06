@@ -74,7 +74,36 @@ class CropOverlayPainter extends CustomPainter {
 
     canvas.drawPath(overlayPath, Paint()..color = style.overlayColor);
 
-    // 2. Draw Border around Crop Rect
+    // 2. Draw Grid
+    if (style.showGrid) {
+      final Paint gridPaint = Paint()
+        ..color = style.gridLineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = style.gridLineWidth;
+
+      // Clip to the rounded crop area
+      canvas.save();
+      canvas.clipRRect(cropRRect);
+
+      final double width = rect.width;
+      final double height = rect.height;
+
+      // Draw vertical and horizontal lines
+      // We need (gridDivisions - 1) lines to create (gridDivisions) sections
+      for (int i = 1; i < style.gridDivisions; i++) {
+        // Vertical line
+        final double x = rect.left + (width / style.gridDivisions) * i;
+        canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), gridPaint);
+
+        // Horizontal line
+        final double y = rect.top + (height / style.gridDivisions) * i;
+        canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), gridPaint);
+      }
+
+      canvas.restore();
+    }
+
+    // 3. Draw Border around Crop Rect
     final Paint borderPaint = Paint()
       ..color = style.borderColor
       ..style = PaintingStyle.stroke

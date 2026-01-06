@@ -22,3 +22,10 @@
 * **Visual Polish**: Restricted the dimmed overlay to only cover the image, leaving the padding area transparent.
 * **Bug Fix**: Fixed crop handle visibility issues when resizing to image edge.
 * **Bug Fix**: Fixed aspect ratio selection not immediately updating the crop area.
+
+## 1.0.5
+
+* **New Feature**: Added Grid Overlay support (Rule of Thirds) to assist with framing.
+* **New Feature**: Added `showGrid` to `CropperStyle` to toggle the grid visibility.
+* **New Feature**: Added `gridDivisions` to `CropperStyle` to customize the grid density (e.g., 3x3, 4x4).
+* **New Feature**: Added `gridLineColor` and `gridLineWidth` for custom grid styling.

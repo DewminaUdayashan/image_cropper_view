@@ -35,6 +35,8 @@ class _MyHomePageState extends State<MyHomePage> {
   // ignore: unused_field
   Uint8List? _croppedImage;
   HandleType _handleType = HandleType.corner;
+  bool _showGrid = true;
+  int _gridDivisions = 3;
 
   void _cropImage() async {
     // 2. Trigger the crop action
@@ -90,6 +92,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   handlerSize: 30,
                   handleType: _handleType,
                   handlerThickness: 6,
+                  showGrid: _showGrid,
+                  gridDivisions: _gridDivisions,
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
@@ -157,6 +161,46 @@ class _MyHomePageState extends State<MyHomePage> {
                           });
                         }
                       },
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text('Show Grid: '),
+                    Switch(
+                      value: _showGrid,
+                      onChanged: (value) {
+                        setState(() {
+                          _showGrid = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text('Grid Divisions: '),
+                    Expanded(
+                      child: Slider(
+                        value: _gridDivisions.toDouble(),
+                        min: 2,
+                        max: 10,
+                        divisions: 8,
+                        label: _gridDivisions.toString(),
+                        onChanged: (value) {
+                          setState(() {
+                            _gridDivisions = value.toInt();
+                          });
+                        },
+                      ),
                     ),
                   ],
                 ),
