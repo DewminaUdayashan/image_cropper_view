@@ -37,6 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   HandleType _handleType = HandleType.corner;
   bool _showGrid = true;
   int _gridDivisions = 3;
+  CropShape _cropShape = CropShape.rectangle;
 
   void _cropImage() async {
     // 2. Trigger the crop action
@@ -94,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   handlerThickness: 6,
                   showGrid: _showGrid,
                   gridDivisions: _gridDivisions,
+                  cropShape: _cropShape,
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
@@ -201,6 +203,32 @@ class _MyHomePageState extends State<MyHomePage> {
                           });
                         },
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text('Crop Shape: '),
+                    const SizedBox(width: 10),
+                    DropdownButton<CropShape>(
+                      value: _cropShape,
+                      items: CropShape.values.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type.name.toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _cropShape = value;
+                          });
+                        }
+                      },
                     ),
                   ],
                 ),

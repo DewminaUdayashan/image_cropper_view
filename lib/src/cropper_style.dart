@@ -9,6 +9,15 @@ enum HandleType {
   corner,
 }
 
+/// Specifies the shape of the crop area.
+enum CropShape {
+  /// Rectangular crop area.
+  rectangle,
+
+  /// Oval/Circular crop area.
+  oval,
+}
+
 /// Defines the visual usage style and configuration for the [ImageCropperView].
 class CropperStyle {
   /// The color of the overlay mask outside the crop area.
@@ -64,6 +73,9 @@ class CropperStyle {
   /// Must be at least 2.
   final int gridDivisions;
 
+  /// The shape of the crop area (rectangle/oval).
+  final CropShape cropShape;
+
   /// Creates a [CropperStyle] with customizable visual properties.
   const CropperStyle({
     this.overlayColor = const Color.fromARGB(150, 0, 0, 0),
@@ -82,5 +94,6 @@ class CropperStyle {
     this.gridLineColor = const Color(0x8AFFFFFF), // Colors.white54
     this.gridLineWidth = 1.0,
     this.gridDivisions = 3,
+    this.cropShape = CropShape.rectangle,
   }) : assert(gridDivisions >= 2, 'gridDivisions must be at least 2');
 }
