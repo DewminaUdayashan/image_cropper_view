@@ -51,7 +51,7 @@ class CropperStyle {
   /// Padding around the crop overlay (gap between image and border).
   final double overlayPadding;
 
-  /// Whether to show the 3x3 grid (Rule of Thirds).
+  /// Whether to show a grid overlay (Rule of Thirds when [gridDivisions] is 3).
   final bool showGrid;
 
   /// The color of the grid lines.
