@@ -15,7 +15,7 @@ import 'image_cropper_controller.dart';
 ///
 /// This widget displays an image with an overlay that allows users to select
 /// a specific rectangular or oval area to crop. It supports:
-/// * **Aspect Ratings**: Constrain the crop area to specific ratios (e.g., 1:1, 16:9).
+/// * **Aspect Ratios**: Constrain the crop area to specific ratios (e.g., 1:1, 16:9).
 /// * **Free-form Cropping**: specific ratios can be disabled for free resize.
 /// * **Transformation**: Rotate the image (90-degree steps or custom angles) and flip horizontally/vertically.
 /// * **Customization**: Use [CropperStyle] to change colors, handle shapes (circle/corner), grid visibility, and more.
