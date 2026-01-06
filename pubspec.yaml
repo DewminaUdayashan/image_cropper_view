@@ -1,6 +1,6 @@
 name: image_cropper_widget
 description: "A customizable Flutter image cropper widget supporting aspect ratios, rotation, flipping, and custom UI overlay styles."
-version: 1.0.4
+version: 1.0.5
 repository: https://github.com/DewminaUdayashan/image_cropper_view
 
 environment:
