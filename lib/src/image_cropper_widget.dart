@@ -862,18 +862,8 @@ class ImageCropperWidgetState extends State<ImageCropperWidget>
 
     // 1.5 Apply Oval Mask if needed
     if (widget.style.cropShape == CropShape.oval) {
-      // The oval needs to match the nativeCropRect size and position (which is now at 0,0 relative to canvas translate)
-      // wait, we translated negative. So (0,0) of the canvas now corresponds to nativeCropRect.left/top.
-      // So drawing a rect at (nativeCropRect.left, nativeCropRect.top) would draw it at 0,0 on the output.
-      // Actually, since we translated the canvas, drawing at (nativeCropRect.left, ...) aligns with the origin.
-
-      // Easier: The crop area on the TARGET canvas is defined by (0, 0, targetWidth, targetHeight).
-      // Because we shifted the world so that (nativeCropRect.left, nativeCropRect.top) -> (0,0).
-
-      // But wait! We haven't drawn the image yet.
-      // We want to clip the drawing area to the oval *before* drawing the image.
-      // The oval is effectively bound by (nativeCropRect.left, nativeCropRect.top, width, height) in world space.
-
+      // After translating the canvas so that nativeCropRect.left/top map to (0, 0),
+      // clip drawing to an oval that matches the crop area before painting the image.
       canvas.clipPath(
         Path()..addOval(
           Rect.fromLTWH(
