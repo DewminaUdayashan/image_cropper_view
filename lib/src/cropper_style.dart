@@ -21,7 +21,7 @@ enum CropShape {
   oval,
 }
 
-/// Defines the visual usage style and configuration for the [ImageCropperView].
+/// Defines the visual style and configuration for the [ImageCropperView].
 ///
 /// Use this class to customize the look and feel of the cropper, including
 /// colors, handle shapes, grid overlays, and crop shapes.
