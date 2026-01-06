@@ -51,7 +51,7 @@ class CropperStyle {
   /// Padding around the crop overlay (gap between image and border).
   final double overlayPadding;
 
-  /// Whether to show the 3x3 grid (Rule of Thirds).
+  /// Whether to show a grid overlay (Rule of Thirds when [gridDivisions] is 3).
   final bool showGrid;
 
   /// The color of the grid lines.
@@ -60,7 +60,8 @@ class CropperStyle {
   /// The width of the grid lines.
   final double gridLineWidth;
 
-  /// The number of divisions in the grid (e.g., 3 for 3x3).
+  /// The number of divisions in the grid (e.g., 3 for a 3x3 grid).
+  /// Must be at least 2.
   final int gridDivisions;
 
   /// Creates a [CropperStyle] with customizable visual properties.
