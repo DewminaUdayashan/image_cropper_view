@@ -35,6 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // ignore: unused_field
   Uint8List? _croppedImage;
   HandleType _handleType = HandleType.corner;
+  bool _showGrid = true;
 
   void _cropImage() async {
     // 2. Trigger the crop action
@@ -90,6 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   handlerSize: 30,
                   handleType: _handleType,
                   handlerThickness: 6,
+                  showGrid: _showGrid,
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
@@ -156,6 +158,23 @@ class _MyHomePageState extends State<MyHomePage> {
                             _handleType = value;
                           });
                         }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text('Show Grid: '),
+                    Switch(
+                      value: _showGrid,
+                      onChanged: (value) {
+                        setState(() {
+                          _showGrid = value;
+                        });
                       },
                     ),
                   ],
