@@ -4,7 +4,7 @@
 /// images with various aspect ratios, rotation, and scaling capabilities.
 /// It also includes a [ImageCropperController] for programmatic control over
 /// the cropping process.
-library;
+library image_cropper_widget;
 
 export 'src/crop_overlay_painter.dart';
 export 'src/cropper_ratio.dart';
