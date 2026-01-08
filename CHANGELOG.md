@@ -1,3 +1,7 @@
+## 1.0.7
+
+* **Improvement**: Lowered supported environment to Dart 2.17 and Flutter 3.0.
+
 ## 1.0.6
 
 * **New Feature**: Added support for Oval/Circle cropping via `CropShape.oval` in `CropperStyle`.
