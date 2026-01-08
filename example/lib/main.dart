@@ -12,10 +12,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Image Cropper Demo',
       debugShowCheckedModeBanner: false,
-      home: const MyHomePage(title: 'Image Cropper Demo'),
+      home: MyHomePage(title: 'Image Cropper Demo'),
     );
   }
 }
@@ -99,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 loadingWidget: const Center(child: Text('Loading...')),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Wrap(
                 runSpacing: 6,
                 spacing: 6,
